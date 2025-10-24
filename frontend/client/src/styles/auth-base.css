@@ -1,0 +1,340 @@
+/* =============== Theme Tokens =============== */
+:root {
+    --bg-1: #ffffff;
+    --bg-2: #fafafe;
+    --text-1: #1f2033;
+    --text-2: #6b7080;
+    --border: #e7e8f0;
+    --shadow: 0 10px 32px rgba(0, 0, 0, 0.07);
+    --radius-lg: 20px;
+    --radius-md: 12px;
+  
+    /* brand (overridden per page if needed) */
+    --brand: #6c63ff;
+    --brand-weak: rgba(108, 99, 255, 0.12);
+  
+    --focus: 0 0 0 4px var(--brand-weak);
+    --card-width: min(96vw, 960px);
+    --pane-width: 520px;
+  }
+  
+  /* Dark mode */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-1: #0f1220;
+      --bg-2: #101426;
+      --text-1: #f0f2ff;
+      --text-2: #b4b8d6;
+      --border: #2a2e45;
+      --shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+    }
+  }
+  
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+  
+  /* =============== Full-screen Background =============== */
+  .auth-screen {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    /* Multi-layer gradient */
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255, 245, 255, 1) 0%, transparent 60%),
+      radial-gradient(circle at 80% 30%, rgba(236, 248, 255, 1) 0%, transparent 70%),
+      linear-gradient(135deg, #f6fff8 0%, #f1f0ff 45%, #fff7ff 80%, #f5faff 100%);
+    background-attachment: fixed;
+    overflow: hidden;
+    padding: 32px;
+  }
+  
+  /* Decorative soft blobs */
+  .auth-blob {
+    position: absolute;
+    width: 70vmin;
+    height: 70vmin;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+    pointer-events: none;
+    animation: floatBlob 20s ease-in-out infinite alternate;
+  }
+  .auth-blob:nth-child(1) {
+    background: rgba(108, 99, 255, 0.2);
+    top: -10%;
+    left: -10%;
+  }
+  .auth-blob:nth-child(2) {
+    background: rgba(0, 184, 148, 0.15);
+    bottom: -15%;
+    right: -10%;
+  }
+  .auth-blob:nth-child(3) {
+    background: rgba(255, 200, 150, 0.2);
+    top: 60%;
+    left: 70%;
+  }
+  @keyframes floatBlob {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(5%, -5%) scale(1.1); }
+  }
+  
+  /* =============== Split Card (visual + form) =============== */
+  .auth-card {
+    width: var(--card-width);
+    background: color-mix(in srgb, var(--bg-1) 80%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 1.1fr minmax(320px, var(--pane-width));
+    overflow: hidden;
+  }
+  
+  @media (max-width: 980px) {
+    .auth-card {
+      grid-template-columns: 1fr; /* collapse to single column */
+      width: min(96vw, 560px);
+    }
+  }
+  
+  /* Left visual pane */
+  .visual-pane {
+    position: relative;
+    background:
+      radial-gradient(1200px 500px at 0% 0%, var(--brand-weak), transparent 60%),
+      linear-gradient(180deg, color-mix(in srgb, var(--brand-weak) 30%, transparent), transparent 60%),
+      var(--bg-1);
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .visual-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--brand-weak);
+    color: var(--text-1);
+    font-weight: 700;
+    width: fit-content;
+    margin-bottom: 14px;
+  }
+  
+  .visual-title {
+    font-size: clamp(22px, 2.2vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+    margin: 0 0 8px 0;
+  }
+  .visual-copy {
+    color: var(--text-2);
+    font-size: clamp(14px, 1.5vw, 16px);
+    max-width: 38ch;
+  }
+  
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+    font-weight: 700;
+    font-size: 12px;
+    margin-top: 20px;
+    opacity: .9;
+  }
+  .brand-mark-dot {
+    width: 8px; height: 8px; border-radius: 99px; background: var(--brand);
+  }
+  
+  /* Right form pane */
+  .form-pane {
+    padding: clamp(22px, 2.2vw, 28px);
+    background: var(--bg-1);
+  }
+  
+  /* Header inside form */
+  .brand-dot {
+    width: 12px; height: 12px; border-radius: 999px;
+    background: var(--brand);
+    margin: 0 auto 10px;
+  }
+  .auth-heading {
+    text-align: center;
+    margin: 0 0 6px 0;
+    color: var(--text-1);
+    font-size: clamp(22px, 2.2vw, 26px);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+  }
+  .auth-subheading {
+    text-align: center;
+    margin: 0 0 4px 0;
+    color: var(--text-2);
+    font-size: clamp(12px, 1.3vw, 14px);
+  }
+  
+  /* =============== Inputs =============== */
+  .auth-label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-2);
+    margin: 14px 0 6px;
+  }
+  
+  .auth-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .auth-input {
+    width: 100%;
+    padding: 12px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-1);
+    color: var(--text-1);
+    font-size: 15px;
+    outline: none;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .05s ease;
+  }
+  
+  .auth-input:focus {
+    border-color: var(--brand);
+    box-shadow: var(--focus);
+  }
+  
+  /* Make username match password width (space for the icon) */
+  #username.auth-input {
+    padding-right: 44px;
+  }
+  
+  /* =============== Password toggle inside input =============== */
+  .pw-toggle-inside {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: #6b7280;
+    opacity: 0.85;
+    transition: color 0.2s ease, opacity 0.2s ease;
+  }
+  
+  .pw-toggle-inside:hover {
+    color: #10b981;   /* accent on hover */
+    opacity: 1;
+  }
+  
+  .pw-toggle-inside:focus {
+    outline: none;
+    color: var(--brand);
+    opacity: 1;
+  }
+  
+  .pw-icon {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    object-fit: contain;
+    /* If using inline SVG with currentColor: */
+    stroke: currentColor;
+    fill: none;
+  }
+  
+  /* =============== Buttons =============== */
+  .btn-primary {
+    margin-top: 18px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--brand);
+    color: #fff;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: .01em;
+    cursor: pointer;
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--brand) 35%, transparent);
+    transition: transform .14s ease, box-shadow .14s ease, opacity .14s ease;
+  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: .65; cursor: default; box-shadow: none; }
+  
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+  }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border);
+    color: var(--text-1);
+    text-decoration: none;
+    font-weight: 700;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .btn-ghost:hover {
+    background: color-mix(in srgb, var(--brand-weak) 40%, transparent);
+    border-color: color-mix(in srgb, var(--brand) 30%, var(--border));
+  }
+  
+  /* =============== Feedback text =============== */
+  .auth-msg {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--text-1);
+  }
+  
+
+  /* normalize sizing so height/width calculations match exactly */
+.auth-input {
+    box-sizing: border-box;
+  }
+  
+  /* give BOTH inputs the same right padding as the password field */
+  .auth-input-wrapper .auth-input {
+    padding-right: 44px;
+  }
+  
+  /* (already have this) password toggle styles without scaling on hover */
+  .pw-toggle-inside {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    color: #6b7280;
+    opacity: 0.85;
+    transition: color 0.2s ease, opacity 0.2s ease;
+  }
+  .pw-toggle-inside:hover { color: #10b981; opacity: 1; }
+  

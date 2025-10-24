@@ -1,0 +1,4 @@
+@import "./auth-base.css";
+
+/* keep violet brand for login */
+:root { --brand: #6c63ff; --brand-weak: rgba(108, 99, 255, 0.12); }
