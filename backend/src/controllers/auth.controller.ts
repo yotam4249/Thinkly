@@ -13,34 +13,58 @@ import { hash } from "crypto";
 import { ref } from "process";
 
 export class AuthController{
-    static async register(req:Request,res:Response){
-        try{
-            let {username,password} = req.body ?? {};
-            if(!username || !password){
-                return res.status(400).json({code:"BAD REQUEST",message:"Username or password needed"});
+    
+    static async register(req: Request, res: Response) {
+        try {
+          let { username, password, dateOfBirth, gender } = req.body ?? {};
+          if (!username || !password) {
+            return res.status(400).json({ code: "BAD REQUEST", message: "Username or password needed" });
+          }
+          username = String(username).trim().toLowerCase();
+      
+          const allowedGenders = ["male", "female", "other", "prefer_not_to_say"];
+          if (gender && !allowedGenders.includes(gender)) {
+            return res.status(400).json({ code: "INVALID_GENDER" });
+          }
+      
+          let birthDate: Date | undefined;
+          if (dateOfBirth) {
+            const parsed = new Date(dateOfBirth);
+            if (isNaN(parsed.getTime())) {
+              return res.status(400).json({ code: "INVALID_DATE_OF_BIRTH" });
             }
-            username = String(username).trim().toLocaleLowerCase();
-
-            const exist = await UserModel.findOne({username:username});
-            if(exist){
-                return res.status(409).json({code:"USERNAME EXISTS"})
-            }
-
-            const hashed = await hashPassword(password);
-            const user = await UserModel.create({
-                username:username,
-                password:hashed
-            });
-            const tokens = await issueTokens(user);
-            return res.status(201).json({
-                user: { id: user.id, username: user.username },
-                ...tokens,
-            });
-        }catch(err){
-            console.error("register error:", err);
-            return res.status(500).json({ code: "SERVER_ERROR" });
+            const age = Math.floor((Date.now() - parsed.getTime()) / (365.25 * 24 * 3600 * 1000));
+            if (age < 16) return res.status(400).json({ code: "AGE_TOO_YOUNG" });
+            birthDate = parsed;
+          }
+      
+          const exist = await UserModel.findOne({ username });
+          if (exist) return res.status(409).json({ code: "USERNAME_EXISTS" });
+      
+          const hashed = await hashPassword(password);
+          const user = await UserModel.create({
+            username,
+            password: hashed,
+            dateOfBirth: birthDate,
+            gender,
+          });
+      
+          const tokens = await issueTokens(user);
+          return res.status(201).json({
+            user: {
+              id: user.id,
+              username: user.username,
+              dateOfBirth: user.dateOfBirth,
+              gender: user.gender,
+            },
+            ...tokens,
+          });
+        } catch (err) {
+          console.error("register error:", err);
+          return res.status(500).json({ code: "SERVER_ERROR" });
         }
-    }
+      }
+      
 
 
 

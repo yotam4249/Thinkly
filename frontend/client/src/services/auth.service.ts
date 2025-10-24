@@ -1,5 +1,5 @@
 import api, { TokenManager } from "./api";
-import type { User } from "../types/user.type";
+import type { Gender, User } from "../types/user.type";
 
 type AuthResponse = {
   user: User;                
@@ -10,12 +10,14 @@ type AuthResponse = {
 export type Credentials = {
   username: string;
   password: string;
+  dateOfBirth?: string;
+  gender?: Gender;
 };
 
 async function register(creds: Credentials): Promise<User> {
   const { data } = await api.post<AuthResponse>("/auth/register", creds);
   TokenManager.set(data.accessToken, data.refreshToken);
-  return data.user;          
+  return data.user;
 }
 
 async function login(creds: Credentials): Promise<User> {

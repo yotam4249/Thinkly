@@ -3,6 +3,8 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IUser extends Document {
   username: string;
   password: string;       
+  dateOfBirth:Date;
+  gender?: "male" | "female" | "other" | "prefer_not_to_say";
   refreshTokens: string[]; 
 }
 
@@ -20,6 +22,11 @@ const userSchema = new Schema<IUser>(
     },
     password: { type: String, required: true },
     refreshTokens: { type: [String], default: [] },
+    dateOfBirth: { type: Date },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", "prefer_not_to_say"],
+    },
   },
   { timestamps: true }
 );
