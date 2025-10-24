@@ -1,6 +1,7 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import { apiRouter } from "./routes/api";
 
 export async function connectMongo(uri: string, dbName: string) {
     // Attach listeners before connecting
@@ -61,6 +62,8 @@ export function createApp() : Express{
           allowedHeaders: ["Content-Type", "Authorization"],
         })
     );
+
+    app.use("/api", apiRouter);
 
     if (!isProd) {
         app.use((req, _res, next) => {
