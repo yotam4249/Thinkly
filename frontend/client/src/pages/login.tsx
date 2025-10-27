@@ -1,24 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from "react";
-import { Link /*, useNavigate*/ } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthService from "../services/auth.service";
 import "../styles/login.css";
 import visibility from "../assets/visibility.svg";
 import visibilityOff from "../assets/visibilityOff.svg";
 
-
-
-
 export default function Login() {
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPw, setShowPw] = useState<boolean>(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  // const navigate = useNavigate();
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!username || !password || loading) return;
+
     setMsg(null);
     setLoading(true);
     try {
@@ -26,9 +26,13 @@ export default function Login() {
         username: username.trim().toLowerCase(),
         password,
       });
+
+      // optional UX: quick status message (will be replaced when navigating)
       setMsg(`Welcome back, ${user.username}`);
       setPassword("");
-      // navigate("/");
+
+      // ✅ go to chats list
+      navigate("/home", { replace: true });
     } catch (err) {
       let code = "LOGIN_FAILED";
       if (typeof err === "object" && err !== null) {
@@ -47,7 +51,7 @@ export default function Login() {
       <div className="auth-blob b2" />
 
       <section className="auth-card">
-        {/* Left visual pane (hidden on narrow screens via grid collapse) */}
+        {/* Left visual pane (hidden on narrow screens via CSS grid collapse) */}
         <div className="visual-pane">
           <span className="visual-badge">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -59,7 +63,6 @@ export default function Login() {
           <p className="visual-copy">
             Sign in to manage campaigns, track performance, and collaborate with your team.
           </p>
-
           <div className="brand-mark">
             <span className="brand-mark-dot" />
             <span>Secure • Fast • Reliable</span>
@@ -75,18 +78,17 @@ export default function Login() {
           </header>
 
           <form onSubmit={onSubmit} noValidate>
-          <label className="auth-label" htmlFor="username">Username</label>
-          <div className="auth-input-wrapper">
-            <input
-              id="username"
-              className="auth-input"
-              placeholder="Username"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-          </div>
-
+            <label className="auth-label" htmlFor="username">Username</label>
+            <div className="auth-input-wrapper">
+              <input
+                id="username"
+                className="auth-input"
+                placeholder="Username"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
 
             <label className="auth-label" htmlFor="password">Password</label>
             <div className="auth-input-wrapper">
@@ -98,22 +100,27 @@ export default function Login() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    // allow Enter to submit when both fields filled
+                    if (username && password && !loading) {
+                      (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
+                    }
+                  }
+                }}
               />
-                <button
-                  type="button"
-                  className="pw-toggle-inside"
-                  onClick={() => setShowPw(!showPw)}
-                  aria-label={showPw ? "Hide password" : "Show password"}
-                >
-                  <img
-                    src={showPw ? visibilityOff : visibility}
-                    alt={showPw ? "Hide password" : "Show password"}
-                    className="pw-icon"
-                  />
-                </button>
-
-
-
+              <button
+                type="button"
+                className="pw-toggle-inside"
+                onClick={() => setShowPw((s) => !s)}
+                aria-label={showPw ? "Hide password" : "Show password"}
+              >
+                <img
+                  src={showPw ? visibilityOff : visibility}
+                  alt={showPw ? "Hide password" : "Show password"}
+                  className="pw-icon"
+                />
+              </button>
             </div>
 
             <button className="btn-primary" type="submit" disabled={loading || !username || !password}>

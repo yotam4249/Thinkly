@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import Login from "./pages/login";
 import Register from "./pages/register";
-import ChatPage from "./pages/chatPage";
+import ChatPage from "./pages/ChatPage";
+import Home from "./pages/home";
 
 function ChatRoute() {
   const { id } = useParams();
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/register" element={<Register/>} />
         <Route path="/chat/:id" element={<ChatRoute/>} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/home" element={<Home />} />
       </Routes>
     </BrowserRouter>
   );
