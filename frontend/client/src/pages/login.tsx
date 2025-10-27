@@ -80,7 +80,7 @@ export default function Login() {
             <input
               id="username"
               className="auth-input"
-              placeholder="e.g. alice"
+              placeholder="Username"
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
