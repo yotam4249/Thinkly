@@ -38,7 +38,7 @@ export function NewChatModal({
         aria-modal="true"
         aria-labelledby="create-chat-title"
       >
-        <h2 id="create-chat-title">Create a New Chat</h2>
+        <h2 id="create-chat-title" className="modal-title">Create a New Chat</h2>
 
         {createErr && (
           <div className="toast error compact" role="alert">
@@ -46,9 +46,11 @@ export function NewChatModal({
           </div>
         )}
 
+        {/* Title */}
         <label className="field">
-          <span>Title</span>
+          <span className="field-label">Title</span>
           <input
+            className="input auth-input"
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -56,39 +58,46 @@ export function NewChatModal({
           />
         </label>
 
-        <fieldset className="field radios">
-          <legend>Type</legend>
-          <label className="radio-pill">
-            <input
-              type="radio"
-              name="chat-type"
-              value="group"
-              checked={newType === "group"}
-              onChange={() => setNewType("group")}
-            />
-            <span>Group</span>
-          </label>
-          <label className="radio-pill">
-            <input
-              type="radio"
-              name="chat-type"
-              value="dm"
-              checked={newType === "dm"}
-              onChange={() => setNewType("dm")}
-            />
-            <span>DM</span>
-          </label>
-        </fieldset>
+        {/* Type */}
+        <div className="field">
+          <span className="field-label">Type</span>
 
+          <div className="seg-group">
+            <label className="seg">
+              <input
+                type="radio"
+                name="chat-type"
+                value="group"
+                checked={newType === "group"}
+                onChange={() => setNewType("group")}
+              />
+              <span>Group</span>
+            </label>
+
+            <label className="seg">
+              <input
+                type="radio"
+                name="chat-type"
+                value="dm"
+                checked={newType === "dm"}
+                onChange={() => setNewType("dm")}
+              />
+              <span>DM</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Members */}
         <label className="field">
-          <span>Members (optional)</span>
+          <span className="field-label">Members (optional)</span>
           <input
+            className="input auth-input"
             type="text"
             value={newMembers}
             onChange={(e) => setNewMembers(e.target.value)}
             placeholder="userId1, userId2, …"
           />
-          <small>Leave empty to start with just you.</small>
+          <small className="small">Leave empty to start with just you.</small>
         </label>
 
         <div className="modal-actions">

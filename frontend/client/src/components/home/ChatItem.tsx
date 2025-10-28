@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { type ReactNode } from "react";
 import avatarIcon from "../../assets/avatar.svg";
 import groupIcon from "../../assets/group.svg";
@@ -5,7 +6,7 @@ import type { ChatListItem } from "../../types/chatList.type";
 
 type Props = {
   item: ChatListItem;
-  onOpen: (id: string) => void;
+  onOpen: (id: string) => void;   // still used by the action buttons
   rightSlot?: ReactNode;
 };
 
@@ -15,32 +16,31 @@ export function ChatItem({ item, onOpen, rightSlot }: Props) {
   const badgeLabel = isGroup ? "Group" : "DM";
 
   return (
-    <li
-      className="list-item chat-item one-line"
-      onClick={(e) => {
-        const target = e.target as HTMLElement;
-        if (target.closest("button")) return;
-        onOpen(item.id);
-      }}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") onOpen(item.id);
-      }}
-    >
-      {/* Left: avatar */}
-      <img src={avatarIcon} alt="avatar" className="avatar-img" width={34} height={34} />
+    <li className="list-item chat-item one-line" role="listitem">
+      {/* Avatar */}
+      <img
+        src={avatarIcon}
+        alt="avatar"
+        className="avatar-img"
+        width={34}
+        height={34}
+      />
 
-      {/* Middle: single inline row */}
+      {/* Single-line info */}
       <div className="chat-info chat-inline" title={item.lastMessageText || ""}>
-        {/* Title + badge on same row */}
         <span className="chat-title ellipsis">{item.title || "(untitled)"}</span>
 
         <span className={`badge inline ${isGroup ? "group" : "dm"}`}>
-          <img src={badgeIcon} alt={badgeLabel} width={14} height={14} className="badge-icon" />
+          <img
+            src={badgeIcon}
+            alt={badgeLabel}
+            width={14}
+            height={14}
+            className="badge-icon"
+          />
           <span className="badge-label">{badgeLabel}</span>
         </span>
 
-        {/* dot + last message on same row */}
         <span className="dot-sep" aria-hidden>•</span>
 
         <span className="chat-preview ellipsis">
@@ -48,7 +48,7 @@ export function ChatItem({ item, onOpen, rightSlot }: Props) {
         </span>
       </div>
 
-      {/* Right side: time + button */}
+      {/* Right side (time + Join/Enter/Open buttons) */}
       {rightSlot}
     </li>
   );

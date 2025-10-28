@@ -3,12 +3,12 @@
 /* -------------------------------------------------
    Shell / container
 -------------------------------------------------- */
-.home-shell { /* if not using CSS Modules, just add "shell home-shell" in JSX */ }
+.home-shell {}                 /* if not using CSS Modules, also add "shell" in JSX */
 .shell.home-shell {}
 
-.gradient-bg { /* defined in ui.css */ }
+.gradient-bg {}                /* defined in ui.css */
 
-.home-container { /* fallback if compose unsupported */ }
+.home-container {}
 .card.home-container {}
 
 .home-body {}
@@ -17,29 +17,30 @@
    Header (title + count + New Chat) — always one row
 -------------------------------------------------- */
 .home-header {
-  margin-bottom: 5px;
+  margin-bottom: 20px;         /* breathing room before list */
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: nowrap; /* never wrap */
+  flex-wrap: nowrap;           /* never wrap */
 }
 
 .home-title-wrap {
   display: flex;
-  align-items: center;   /* baseline → center to align with circle */
+  align-items: center;         /* align with circle */
   gap: 10px;
   min-width: 0;
 }
 
-.home-header h1 {
+.home-header h1,
+.home-title {
   margin: 0;
   font-size: 28px;
   letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
-/* circular count badge (use this in Header) */
+/* circular count badge (use in Header) */
 .chat-count-circle {
   --size: 28px;
   width: var(--size);
@@ -60,7 +61,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  white-space: nowrap; /* prevent wrapping */
+  white-space: nowrap;                  /* prevent wrapping */
 }
 
 /* -------------------------------------------------
@@ -69,16 +70,18 @@
 .chat-list { list-style: none; margin: 0; padding: 0; }
 
 .chat-item {
+  cursor: default;                      /* row is not clickable */
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  min-height: 56px;              /* comfy tap target */
+  min-height: 56px;                     /* comfy tap target */
   border-radius: var(--radius-md, 12px);
   background: var(--surface, #fff);
 }
+.chat-item button { cursor: pointer; }
 
-/* hover focus (relies on your ui.css vars) */
+/* hover / focus */
 .chat-item:hover { background: var(--surface-hover, #fbfbfd); }
 .chat-item:focus-within { outline: 2px solid var(--ring, #dbeafe); }
 
@@ -97,10 +100,10 @@
   align-items: center;
   gap: 8px;
   flex: 1 1 auto;
-  min-width: 0;                  /* REQUIRED for ellipsis to work */
+  min-width: 0;                          /* REQUIRED for ellipsis */
 }
 
-/* title + preview with ellipsis (single source of truth) */
+/* title + preview with ellipsis */
 .chat-title,
 .chat-preview {
   display: inline-block;
@@ -114,16 +117,16 @@
 /* typography tweaks */
 .chat-title {
   font-weight: 700;
-  font-size: 16.5px;             /* bigger title */
+  font-size: 16.5px;                     /* bigger title */
   line-height: 1.15;
   color: var(--text-strong, #111827);
 }
 .chat-preview {
-  font-size: 13px;               /* smaller last message */
+  font-size: 13px;                       /* smaller last message */
   color: var(--muted, #667085);
 }
 
-/* optional dot separator between badge and preview */
+/* dot separator between badge and preview */
 .dot-sep { opacity: 0.45; margin: 0 2px; }
 
 /* inline badge */
@@ -144,7 +147,7 @@
 .chat-badge-icon,
 .badge.inline .badge-icon { opacity: 0.9; }
 
-/* right side: time + action button always on one line */
+/* right side: time + action button */
 .item-right,
 .chat-right {
   margin-left: auto;
@@ -161,19 +164,96 @@
   white-space: nowrap;
 }
 
-/* buttons */
-.load-more-container { display: flex; justify-content: center; padding: 8px 0 6px; }
-.load-more-btn {}
-.btn-min-96 { min-width: 96px; }
+/* -------------------------------------------------
+   Create Chat Modal form fields
+-------------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.field > span {
+  font-weight: 600;
+  font-size: 14px;
+  color: #111827;
+}
 
-/* Empty state */
+.input {
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+.input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.small {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* radio buttons */
+.radios {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.radio-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+.radio-pill input { accent-color: #2563eb; }
+.radio-pill:hover { background: #f9fafb; }
+.radio-pill input:checked + span,
+.radio-pill input:checked ~ span {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* modal shell */
+.modal {
+  background: #fff;
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-width: 420px;
+  width: 100%;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* -------------------------------------------------
+   Empty state
+-------------------------------------------------- */
 .empty-state { text-align: center; padding: 56px 10px 40px; }
 .empty-state .empty-illustration {
   width: 120px; height: 80px; margin: 0 auto 8px;
   background: var(--soft, #eef2ff); border-radius: 12px;
 }
 
-/* Logout (fixed) */
+/* -------------------------------------------------
+   Logout (fixed)
+-------------------------------------------------- */
 .logout-btn-fixed {
   position: fixed;
   top: 12px;
@@ -187,10 +267,18 @@
 }
 
 /* -------------------------------------------------
+   Load more
+-------------------------------------------------- */
+.load-more-container { display: flex; justify-content: center; padding: 8px 0 6px; }
+.load-more-btn {}
+.btn-min-96 { min-width: 96px; }
+
+/* -------------------------------------------------
    Responsive tweaks
 -------------------------------------------------- */
 @media (max-width: 640px) {
-  .home-header h1 { font-size: 24px; }
+  .home-header h1,
+  .home-title { font-size: 24px; }
   .chat-preview, .dot-sep { display: none; }  /* keep row single-line on narrow widths */
   .chat-count-circle { --size: 26px; font-size: 12px; }
 }
@@ -198,3 +286,82 @@
 @media (max-width: 480px) {
   .home-body { max-height: 64vh; }
 }
+
+
+/* ===== Auth-style fields for Create Chat modal ===== */
+.modal-title {
+  margin: 0 0 14px 0;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field-label { font-weight: 700; font-size: 14px; color: #0f172a; }
+
+/* pill input mirroring auth screens */
+.input.auth-input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;                 /* pill-ish like auth */
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 44px;
+  outline: none;
+  box-shadow: 0 1px 0 rgba(16,24,40,0.02);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.input.auth-input::placeholder { color: #9aa3af; }
+.input.auth-input:focus {
+  border-color: #2563eb;               /* blue like auth */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.20);
+  background: #fff;
+}
+.input.auth-input:disabled { opacity: .6; cursor: not-allowed; }
+
+/* segmented radio group (auth-like pills) */
+.seg-group {
+  display: grid;
+  gap: 10px;                            /* stacked pills (as in your screenshot) */
+}
+.seg {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: 9999px;
+  border: 1.5px solid #e5e7eb;
+  background: #f8fafc;
+  padding: 10px 16px;
+  user-select: none;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.seg input { appearance: none; width: 0; height: 0; margin: 0; }
+.seg span {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 15px;
+}
+.seg:hover { background: #f2f6ff; }
+
+.seg input:focus-visible + span,
+.seg:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px rgba(37,99,235,.20);
+  border-color: #93c5fd;
+}
+
+/* checked state matches your auth vibe (soft indigo background & border) */
+.seg input:checked + span,
+.seg:has(input:checked) span { color: #1d4ed8; }
+.seg:has(input:checked) {
+  background: #eef2ff;
+  border-color: #a5b4fc;
+}
+
+/* helper text */
+.small { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+/* modal shell already defined earlier; keep spacing consistent */
+.modal { max-width: 420px; width: 100%; padding: 24px 28px; border-radius: 12px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
