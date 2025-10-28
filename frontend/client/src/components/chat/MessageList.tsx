@@ -56,8 +56,8 @@ export function MessageList({
           <div key={dayKey}>
             <DayDivider isoDay={dayKey} />
             {dayMsgs.map((m) => (
-              <MessageRow key={m._id} msg={m} meId={meId} />
-            ))}
+            <MessageRow key={m._id || m.clientId} msg={m} meId={meId} />
+))}
           </div>
         ))}
       </div>

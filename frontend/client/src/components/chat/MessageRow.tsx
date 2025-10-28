@@ -3,16 +3,26 @@ import type { ChatMessage } from "../../types/chat.type";
 const fmtTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
 
+// We allow an extra UI-only field `senderName` that ChatPage injects.
+type MsgWithName = ChatMessage & { senderName?: string };
+
 export function MessageRow({ msg, meId }: { msg: ChatMessage; meId: string }) {
-  const mine = msg.senderId === meId;
+  const m = msg as MsgWithName;
+  const mine = m.senderId === meId;
+
+  // Prefer username if provided; otherwise fall back to short id.
+  // For own messages, show your username if present; else "You".
+  const displayName = mine
+    ? m.senderName ?? "You"
+    : m.senderName ?? m.senderId.slice(-4);
+
   return (
     <div className={`row ${mine ? "me" : "other"}`}>
       <div className={`bubble ${mine ? "bubble-me" : "bubble-other"}`}>
-        {msg.text}
+        {m.text}
       </div>
       <div className="meta">
-        {!mine && <b>{msg.senderId.slice(-4)}</b>} {fmtTime(msg.createdAt)}{" "}
-        {msg.pending ? "• sending…" : ""}
+        <b>{displayName}</b> {fmtTime(m.createdAt)} {m.pending ? "• sending…" : ""}
       </div>
     </div>
   );
