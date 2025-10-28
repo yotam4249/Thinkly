@@ -1,45 +1,200 @@
 @import "./ui.css";
 
-/* Map existing classes to the shared primitives */
-.home-shell { composes: shell; }       /* if your build supports CSS Modules 'composes' */
-/* If not using CSS Modules, just add both classes in JSX: className="shell home-shell" */
+/* -------------------------------------------------
+   Shell / container
+-------------------------------------------------- */
+.home-shell { /* if not using CSS Modules, just add "shell home-shell" in JSX */ }
+.shell.home-shell {}
 
-.home-shell { /* non-modular fallback */
-  /* nothing extra; shell is in ui.css */
+.gradient-bg { /* defined in ui.css */ }
+
+.home-container { /* fallback if compose unsupported */ }
+.card.home-container {}
+
+.home-body {}
+
+/* -------------------------------------------------
+   Header (title + count + New Chat) — always one row
+-------------------------------------------------- */
+.home-header {
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap; /* never wrap */
 }
-.gradient-bg { /* already in ui.css */ }
 
-.home-container { composes: card; }
-.home-container.card { /* fallback if compose unsupported */ }
+.home-title-wrap {
+  display: flex;
+  align-items: center;   /* baseline → center to align with circle */
+  gap: 10px;
+  min-width: 0;
+}
 
-.home-header { composes: sticky-header; }
-.home-header h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
-.chat-count { composes: count-pill; }
+.home-header h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
 
-.home-body { composes: card-body; }
+/* circular count badge (use this in Header) */
+.chat-count-circle {
+  --size: 28px;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: #1f2937;                       /* slate-800 */
+  background: rgba(31, 41, 55, 0.08);   /* soft slate bg */
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+  user-select: none;
+}
 
-/* Chat list maps to generic list styles */
-.chat-list { composes: list; }
-.chat-item { composes: list-item; }
-.chat-info { composes: item-info; }
-.chat-title-row { composes: item-title-row; }
-.chat-title { composes: item-title; }
-.chat-preview { composes: item-sub; }
-.chat-time { composes: item-time; }
+.new-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap; /* prevent wrapping */
+}
 
-/* Buttons reuse ui.css */
-.new-chat-btn { }
+/* -------------------------------------------------
+   List / rows – single-line layout
+-------------------------------------------------- */
+.chat-list { list-style: none; margin: 0; padding: 0; }
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  min-height: 56px;              /* comfy tap target */
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface, #fff);
+}
+
+/* hover focus (relies on your ui.css vars) */
+.chat-item:hover { background: var(--surface-hover, #fbfbfd); }
+.chat-item:focus-within { outline: 2px solid var(--ring, #dbeafe); }
+
+/* avatar */
+.avatar-img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+/* middle info is a single row that can shrink/grow */
+.chat-info,
+.chat-info.chat-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;                  /* REQUIRED for ellipsis to work */
+}
+
+/* title + preview with ellipsis (single source of truth) */
+.chat-title,
+.chat-preview {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* typography tweaks */
+.chat-title {
+  font-weight: 700;
+  font-size: 16.5px;             /* bigger title */
+  line-height: 1.15;
+  color: var(--text-strong, #111827);
+}
+.chat-preview {
+  font-size: 13px;               /* smaller last message */
+  color: var(--muted, #667085);
+}
+
+/* optional dot separator between badge and preview */
+.dot-sep { opacity: 0.45; margin: 0 2px; }
+
+/* inline badge */
+.badge,
+.chat-badge,
+.badge.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  background: rgba(0,0,0,0.06);
+  color: #444;
+}
+.badge img,
+.chat-badge-icon,
+.badge.inline .badge-icon { opacity: 0.9; }
+
+/* right side: time + action button always on one line */
+.item-right,
+.chat-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.item-time,
+.chat-time {
+  font-size: 12px;
+  color: var(--muted, #667085);
+  white-space: nowrap;
+}
+
+/* buttons */
 .load-more-container { display: flex; justify-content: center; padding: 8px 0 6px; }
 .load-more-btn {}
+.btn-min-96 { min-width: 96px; }
 
-/* Avatar image */
-.avatar-img {}
-
-/* Modal bits are already in ui.css */
-
-/* Small screen tweak for home */
-@media (max-width: 480px) {
-  .home-body { max-height: 64vh; }
-  .home-header h1 { font-size: 24px; }
+/* Empty state */
+.empty-state { text-align: center; padding: 56px 10px 40px; }
+.empty-state .empty-illustration {
+  width: 120px; height: 80px; margin: 0 auto 8px;
+  background: var(--soft, #eef2ff); border-radius: 12px;
 }
 
+/* Logout (fixed) */
+.logout-btn-fixed {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  font-weight: 500;
+}
+
+/* -------------------------------------------------
+   Responsive tweaks
+-------------------------------------------------- */
+@media (max-width: 640px) {
+  .home-header h1 { font-size: 24px; }
+  .chat-preview, .dot-sep { display: none; }  /* keep row single-line on narrow widths */
+  .chat-count-circle { --size: 26px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .home-body { max-height: 64vh; }
+}

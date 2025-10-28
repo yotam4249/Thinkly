@@ -1,16 +1,50 @@
+// import type { ChatListItem } from "../../types/chatList.type";
+// import { ChatItem } from "./ChatItem";
+
+// type Props = {
+//   items: ChatListItem[];
+//   onOpen: (id: string) => void;
+// };
+
+// export function ChatList({ items, onOpen }: Props) {
+//   return (
+//     <ul className="chat-list">
+//       {items.map((c) => (
+//         <ChatItem key={c.id} item={c} onOpen={onOpen} />
+//       ))}
+//     </ul>
+//   );
+// }
 import type { ChatListItem } from "../../types/chatList.type";
 import { ChatItem } from "./ChatItem";
+import { ChatActions } from "./ChatActions";
 
 type Props = {
   items: ChatListItem[];
   onOpen: (id: string) => void;
+  onJoin: (id: string) => void;
+  joiningId: string | null;
+  fmtTime: (iso?: string) => string;
 };
 
-export function ChatList({ items, onOpen }: Props) {
+export function ChatList({ items, onOpen, onJoin, joiningId, fmtTime }: Props) {
   return (
     <ul className="chat-list">
-      {items.map((c) => (
-        <ChatItem key={c.id} item={c} onOpen={onOpen} />
+      {items.map((item) => (
+        <ChatItem
+          key={item.id}
+          item={item}
+          onOpen={onOpen}
+          rightSlot={
+            <ChatActions
+              item={item}
+              onOpen={onOpen}
+              onJoin={onJoin}
+              isJoining={joiningId === item.id}
+              fmtTime={fmtTime}
+            />
+          }
+        />
       ))}
     </ul>
   );
