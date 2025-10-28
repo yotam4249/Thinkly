@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listChats, createChat } from "../services/chat.service";
-import "../styles/home.css"; // imports ui.css inside
+import { listChats, createChat, joinGroup } from "../services/chat.service";
+import "../styles/home.css";
 
 import type { ChatListItem } from "../types/chatList.type";
 import avatarIcon from "../assets/avatar.svg";
@@ -21,12 +21,17 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
   const [showNewChat, setShowNewChat] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newType, setNewType] = useState<"dm" | "group">("group");
   const [newMembers, setNewMembers] = useState("");
   const [createErr, setCreateErr] = useState<string | null>(null);
+
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [joinErr, setJoinErr] = useState<string | null>(null);
+  const isJoining = (id: string) => joiningId === id;
 
   const load = async (p: number) => {
     if (loading) return;
@@ -68,35 +73,45 @@ export default function Home() {
   }, [hasMore, page, loading]);
 
   const handleCreate = async () => {
-    if (!newTitle.trim()) {
+    if (newType === "group" && !newTitle.trim()) {
       setCreateErr("TITLE_REQUIRED");
       return;
     }
+
+    const members = newMembers
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (newType === "dm" && members.length !== 1) {
+      setCreateErr("DM_MUST_HAVE_EXACTLY_ONE_OTHER_MEMBER");
+      return;
+    }
+
     setCreating(true);
     setCreateErr(null);
     try {
-      const members = newMembers
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const payloadMembers = members.length ? members : undefined;
 
-      const { chatId } = await createChat(
+      const { chatId, reused } = await createChat(
         newType,
-        newTitle.trim(),
-        members.length ? members : undefined
+        newType === "group" ? newTitle.trim() : undefined,
+        payloadMembers
       );
 
-      // optimistic prepend
-      setItems((prev) => [
-        {
-          id: chatId,
-          type: newType,
-          title: newTitle.trim(),
-          lastMessageText: "",
-          lastMessageAt: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
+      if (!reused) {
+        setItems((prev) => [
+          {
+            id: chatId,
+            type: newType,
+            title: newType === "group" ? (newTitle.trim() || "(untitled)") : "(DM)",
+            lastMessageText: "",
+            lastMessageAt: new Date().toISOString(),
+            isMember: newType === "dm" ? true : true, // creator is member for new group
+          },
+          ...prev,
+        ]);
+      }
 
       setNewTitle("");
       setNewMembers("");
@@ -108,6 +123,22 @@ export default function Home() {
       setCreateErr(e?.response?.data?.code ?? "FAILED_TO_CREATE_CHAT");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleJoin = async (chatId: string) => {
+    setJoinErr(null);
+    setJoiningId(chatId);
+    try {
+      await joinGroup(chatId);
+      // mark as member, turning Join -> Enter chat
+      setItems(prev =>
+        prev.map(it => it.id === chatId ? { ...it, isMember: true } : it)
+      );
+    } catch (e: any) {
+      setJoinErr(e?.response?.data?.code ?? "FAILED_TO_JOIN_GROUP");
+    } finally {
+      setJoiningId(null);
     }
   };
 
@@ -138,6 +169,7 @@ export default function Home() {
 
         {/* errors */}
         {err && <div className="toast error" role="alert">{err}</div>}
+        {joinErr && <div className="toast error" role="alert">{joinErr}</div>}
 
         {/* body */}
         <div className="card-body">
@@ -157,14 +189,8 @@ export default function Home() {
               return (
                 <li
                   key={c.id}
-                  className="list-item chat-item focusable"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Open chat ${c.title || "untitled"}`}
-                  onClick={() => navigate(`/chat/${c.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") navigate(`/chat/${c.id}`);
-                  }}
+                  className="list-item chat-item"
+                  // NOTE: no onClick on the row; only the right-side button is interactive
                 >
                   {/* avatar */}
                   <img
@@ -183,7 +209,6 @@ export default function Home() {
                         {c.title || "(untitled)"}
                       </div>
 
-                      {/* type badge */}
                       <span className="badge" aria-label={isGroup ? "Group chat" : "Direct message"}>
                         <img
                           src={isGroup ? groupIcon : avatarIcon}
@@ -202,8 +227,43 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* time */}
-                  <div className="item-time">{fmt(c.lastMessageAt)}</div>
+                  {/* right-side actions & time (only button is pressable) */}
+                  <div className="item-right" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div className="item-time">{fmt(c.lastMessageAt)}</div>
+
+                    {isGroup ? (
+                      c.isMember ? (
+                        <button
+                          className="btn-primary focusable"
+                          onClick={() => navigate(`/chat/${c.id}`)}
+                          aria-label="Enter chat"
+                          title="Enter chat"
+                        >
+                          Enter chat
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-ghost focusable"
+                          onClick={() => !isJoining(c.id) && handleJoin(c.id)}
+                          disabled={isJoining(c.id)}
+                          aria-label="Join group"
+                          title="Join group"
+                          style={{ minWidth: 96 }}
+                        >
+                          {isJoining(c.id) ? <span className="spinner" /> : "Join"}
+                        </button>
+                      )
+                    ) : (
+                      <button
+                        className="btn-primary focusable"
+                        onClick={() => navigate(`/chat/${c.id}`)}
+                        aria-label="Open chat"
+                        title="Open chat"
+                      >
+                        Open
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}
@@ -245,13 +305,16 @@ export default function Home() {
             {createErr && <div className="toast error compact" role="alert">{createErr}</div>}
 
             <label className="field">
-              <span>Title</span>
+              <span>
+                Title {newType === "dm" && <span className="text-muted">(ignored for DM)</span>}
+              </span>
               <input
                 className="input"
                 type="text"
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 placeholder="Project Alpha, Weekend Group, …"
+                disabled={newType === "dm"}
               />
             </label>
 
@@ -279,15 +342,19 @@ export default function Home() {
             </fieldset>
 
             <label className="field">
-              <span>Members <span className="text-muted">(optional)</span></span>
+              <span>Members <span className="text-muted">{newType === "dm" ? "(required)" : "(optional)"}</span></span>
               <input
                 className="input"
                 type="text"
                 value={newMembers}
                 onChange={(e) => setNewMembers(e.target.value)}
-                placeholder="userId1, userId2, …"
+                placeholder={newType === "dm" ? "recipientUserId" : "userId1, userId2, …"}
               />
-              <small className="small">Leave empty to start with just you.</small>
+              <small className="small">
+                {newType === "dm"
+                  ? "For a DM, enter exactly one userId (the recipient)."
+                  : "Leave empty to start with just you; you can invite later."}
+              </small>
             </label>
 
             <div className="modal-actions">

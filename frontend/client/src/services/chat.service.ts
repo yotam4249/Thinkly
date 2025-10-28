@@ -3,9 +3,18 @@
 import api from "./api";
 import type { ChatListItem } from "../types/chatList.type";
 
-export async function createChat(type: "dm" | "group", title?: string, members?: string[]) {
-  const { data } = await api.post("/chat", { type, title, members });
-  return data as { chatId: string };
+type CreateChatServer =
+  | { id: string; reused?: boolean; type: "dm" | "group"; lastMessageText?: string; lastMessageAt?: string }
+  | { chatId: string; reused?: boolean };
+
+export async function createChat(
+  type: "dm" | "group",
+  title?: string,
+  members?: string[]
+) {
+  const { data } = await api.post<CreateChatServer>("/chat", { type, title, members });
+  if ("chatId" in data) return { chatId: data.chatId, reused: Boolean((data as any).reused) };
+  return { chatId: data.id, reused: Boolean((data as any).reused) };
 }
 
 export async function getMessages(chatId: string, cursor?: string) {
@@ -21,4 +30,9 @@ export async function listChats(page = 1, limit = 15) {
     pageSize: number;
     hasMore: boolean;
   };
+}
+
+export async function joinGroup(chatId: string) {
+  const { data } = await api.post(`/chat/${chatId}/join`);
+  return data as { ok: boolean };
 }

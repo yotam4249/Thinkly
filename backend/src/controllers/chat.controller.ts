@@ -2,10 +2,9 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { ChatModel } from "../models/chat.model";
 import { MessageModel } from "../models/message.model";
-import { redis } from "../services/redis.service"; // ⬅️ relative path
+import { redis } from "../services/redis.service";
 
 const CACHE_TTL_SECONDS = 120;
-
 const toObjectId = (id: string) => new mongoose.Types.ObjectId(id);
 
 export class ChatController {
@@ -14,29 +13,68 @@ export class ChatController {
       const userId = req.user!.id;
       const { title, members = [], type = "group" } = req.body ?? {};
 
-      // validations
-      if (!title) return res.status(400).json({ code: "TITLE_REQUIRED" });
       if (!["dm", "group"].includes(type)) {
         return res.status(400).json({ code: "BAD_TYPE" });
       }
+      if (type === "group" && !title) {
+        return res.status(400).json({ code: "TITLE_REQUIRED" });
+      }
 
-      // normalize + dedupe members, ensure creator included
+      if (type === "dm") {
+        const unique = new Set<string>([userId, ...members.map(String)]);
+        if (unique.size !== 2) {
+          return res.status(400).json({ code: "DM_MUST_HAVE_EXACTLY_2_MEMBERS" });
+        }
+        const pair = Array.from(unique).map(toObjectId);
+
+        const existing = await ChatModel.findOne({
+          type: "dm",
+          members: { $all: pair },
+          $expr: { $eq: [{ $size: "$members" }, 2] },
+        }).lean();
+
+        if (existing) {
+          return res.status(200).json({
+            id: String(existing._id),
+            title: existing.title ?? "(DM)",
+            type: existing.type,
+            lastMessageText: existing.lastMessageText ?? "",
+            lastMessageAt: (existing.lastMessageAt ?? existing.updatedAt)?.toISOString(),
+            reused: true,
+          });
+        }
+
+        const chat = await ChatModel.create({
+          type: "dm",
+          title: "(DM)",
+          members: pair,
+        });
+
+        for (const m of pair) {
+          await redis.del(`u:${String(m)}:recent_chats`);
+        }
+
+        return res.status(201).json({
+          id: String(chat._id),
+          title: chat.title,
+          type: chat.type,
+          lastMessageText: chat.lastMessageText ?? "",
+          lastMessageAt: (chat.lastMessageAt ?? chat.updatedAt)?.toISOString(),
+        });
+      }
+
+      // GROUP
       const unique = new Set<string>([userId, ...members.map(String)]);
       const memberIds = Array.from(unique).map(toObjectId);
 
       const chat = await ChatModel.create({
         title,
-        type,
+        type: "group",
         members: memberIds,
       });
 
-      // invalidate cache for all participants
       await redis.del(`u:${userId}:recent_chats`);
-      for (const m of unique) {
-        if (m !== userId) await redis.del(`u:${m}:recent_chats`);
-      }
 
-      // return minimal payload used by FE
       return res.status(201).json({
         id: String(chat._id),
         title: chat.title ?? "(untitled)",
@@ -56,13 +94,16 @@ export class ChatController {
       const { chatId } = req.params;
       const { cursor, limit = "30" } = req.query as { cursor?: string; limit?: string };
 
-      // verify membership
-      const chat = await ChatModel.findById(chatId).select("_id members");
+      const chat = await ChatModel.findById(chatId).select("_id type members").lean();
       if (!chat) return res.status(404).json({ code: "CHAT_NOT_FOUND" });
-      const isMember = chat.members.some((m) => String(m) === userId);
-      if (!isMember) return res.status(403).json({ code: "FORBIDDEN" });
 
-      const q: any = { chatId: toObjectId(chatId) }; // ⬅️ ensure ObjectId
+      if (chat.type === "dm") {
+        const isMember = (chat.members ?? []).some((m) => String(m) === userId);
+        if (!isMember) return res.status(403).json({ code: "FORBIDDEN" });
+      }
+      // groups are public-readable
+
+      const q: any = { chatId: toObjectId(chatId) };
       if (cursor) q._id = { $lt: toObjectId(cursor) };
 
       const pageSize = Math.min(parseInt(String(limit), 10) || 30, 100);
@@ -85,6 +126,23 @@ export class ChatController {
     }
   }
 
+  // Helper to map chat doc -> response item with isMember flag
+  private static mapItem(c: any, userId: string) {
+    const isMember =
+      c.type === "dm"
+        ? true
+        : Array.isArray(c.members) && c.members.some((m: any) => String(m) === userId);
+
+    return {
+      id: String(c._id),
+      type: c.type,
+      title: c.title ?? "(untitled)",
+      lastMessageText: c.lastMessageText ?? "",
+      lastMessageAt: (c.lastMessageAt ?? c.updatedAt)?.toString(),
+      isMember,
+    };
+  }
+
   static async listChats(req: Request, res: Response) {
     try {
       const userId = req.user!.id;
@@ -104,11 +162,26 @@ export class ChatController {
       }
 
       if (!recent) {
-        recent = await ChatModel.find({ members: toObjectId(userId) })
+        // include members so we can compute isMember for groups
+        const myChats = await ChatModel.find({ members: toObjectId(userId) })
           .sort({ updatedAt: -1 })
           .limit(30)
-          .select("_id type title lastMessageText lastMessageAt updatedAt")
+          .select("_id type title lastMessageText lastMessageAt updatedAt members")
           .lean();
+
+        const publicGroups = await ChatModel.find({ type: "group" })
+          .sort({ updatedAt: -1 })
+          .limit(30)
+          .select("_id type title lastMessageText lastMessageAt updatedAt members")
+          .lean();
+
+        const map = new Map<string, any>();
+        for (const c of [...myChats, ...publicGroups]) {
+          map.set(String(c._id), c);
+        }
+        recent = Array.from(map.values()).sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
 
         await redis.set(cacheKey, JSON.stringify(recent), "EX", CACHE_TTL_SECONDS);
       }
@@ -116,45 +189,68 @@ export class ChatController {
       const start = (page - 1) * limit;
       const end = start + limit;
 
-      // serve from cache if the requested slice is within the first 30
       if (end <= 30) {
-        const slice = recent.slice(start, end).map((c) => ({
-          id: String(c._id),
-          type: c.type,
-          title: c.title ?? "(untitled)",
-          lastMessageText: c.lastMessageText ?? "",
-          lastMessageAt: (c.lastMessageAt ?? c.updatedAt)?.toString(), // or toISOString()
-        }));
+        const slice = recent.slice(start, end).map((c) => ChatController.mapItem(c, userId));
         return res.json({
           items: slice,
           page,
           pageSize: limit,
-          hasMore: recent.length > end, // cache is capped to 30; beyond that we DB-scan
+          hasMore: recent.length > end,
         });
       }
 
-      // fall back to DB for deeper pages
-      const items = await ChatModel.find({ members: toObjectId(userId) })
+      // deep pages
+      const myChatsAll = await ChatModel.find({ members: toObjectId(userId) })
         .sort({ updatedAt: -1 })
-        .skip(start)
-        .limit(limit)
-        .select("_id type title lastMessageText lastMessageAt updatedAt")
+        .select("_id type title lastMessageText lastMessageAt updatedAt members")
         .lean();
 
+      const publicGroupsAll = await ChatModel.find({ type: "group" })
+        .sort({ updatedAt: -1 })
+        .select("_id type title lastMessageText lastMessageAt updatedAt members")
+        .lean();
+
+      const allMap = new Map<string, any>();
+      for (const c of [...myChatsAll, ...publicGroupsAll]) {
+        allMap.set(String(c._id), c);
+      }
+      const all = Array.from(allMap.values()).sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+
+      const pageItems = all.slice(start, end);
+
       return res.json({
-        items: items.map((c) => ({
-          id: String(c._id),
-          type: c.type,
-          title: c.title ?? "(untitled)",
-          lastMessageText: c.lastMessageText ?? "",
-          lastMessageAt: (c.lastMessageAt ?? c.updatedAt)?.toString(), // or toISOString()
-        })),
+        items: pageItems.map((c) => ChatController.mapItem(c, userId)),
         page,
         pageSize: limit,
-        hasMore: items.length === limit,
+        hasMore: end < all.length,
       });
     } catch (e) {
       console.error("listChats error:", e);
+      return res.status(500).json({ code: "SERVER_ERROR" });
+    }
+  }
+
+  static async joinGroup(req: Request, res: Response) {
+    try {
+      const userId = req.user!.id;
+      const { chatId } = req.params;
+
+      const chat = await ChatModel.findById(chatId).select("_id type members");
+      if (!chat) return res.status(404).json({ code: "CHAT_NOT_FOUND" });
+      if (chat.type !== "group") return res.status(400).json({ code: "NOT_A_GROUP" });
+
+      const already = chat.members.some((m) => String(m) === userId);
+      if (!already) {
+        chat.members.push(toObjectId(userId));
+        await chat.save();
+        await redis.del(`u:${userId}:recent_chats`);
+      }
+
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error("joinGroup error:", e);
       return res.status(500).json({ code: "SERVER_ERROR" });
     }
   }
