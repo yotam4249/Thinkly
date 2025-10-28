@@ -21,8 +21,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // New-chat modal
   const [showNewChat, setShowNewChat] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
