@@ -1,113 +1,45 @@
-.home-container {
-    max-width: 800px;
-    margin: 32px auto;
-    padding: 0 16px;
-  }
-  
-  .home-header {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  
-  .home-header h1 {
-    margin: 0;
-  }
-  
-  .chat-count {
-    color: #888;
-    font-size: 13px;
-  }
-  
-  .error-box {
-    background: #ffe9e9;
-    color: #900;
-    padding: 8px 10px;
-    border: 1px solid #f5c2c2;
-    border-radius: 6px;
-    margin-bottom: 12px;
-  }
-  
-  .empty-state {
-    color: #666;
-    text-align: center;
-    margin-top: 24px;
-  }
-  
-  .chat-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .chat-item {
-    padding: 12px 10px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    transition: background 0.2s;
-  }
-  
-  .chat-item:hover {
-    background: #fafafa;
-  }
-  
-  .chat-info {
-    min-width: 0;
-    flex: 1;
-  }
-  
-  .chat-title {
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .chat-preview {
-    color: #666;
-    font-size: 13px;
-    margin-top: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .chat-time {
-    color: #999;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-  
-  .load-more-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 16px;
-  }
-  
-  .load-more-btn {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    background: #fafafa;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-  }
-  
-  .load-more-btn:hover {
-    background: #f0f0f0;
-  }
-  
-  .load-more-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  
-  .sentinel {
-    height: 1px;
-  }
-  
+@import "./ui.css";
+
+/* Map existing classes to the shared primitives */
+.home-shell { composes: shell; }       /* if your build supports CSS Modules 'composes' */
+/* If not using CSS Modules, just add both classes in JSX: className="shell home-shell" */
+
+.home-shell { /* non-modular fallback */
+  /* nothing extra; shell is in ui.css */
+}
+.gradient-bg { /* already in ui.css */ }
+
+.home-container { composes: card; }
+.home-container.card { /* fallback if compose unsupported */ }
+
+.home-header { composes: sticky-header; }
+.home-header h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+.chat-count { composes: count-pill; }
+
+.home-body { composes: card-body; }
+
+/* Chat list maps to generic list styles */
+.chat-list { composes: list; }
+.chat-item { composes: list-item; }
+.chat-info { composes: item-info; }
+.chat-title-row { composes: item-title-row; }
+.chat-title { composes: item-title; }
+.chat-preview { composes: item-sub; }
+.chat-time { composes: item-time; }
+
+/* Buttons reuse ui.css */
+.new-chat-btn { }
+.load-more-container { display: flex; justify-content: center; padding: 8px 0 6px; }
+.load-more-btn {}
+
+/* Avatar image */
+.avatar-img {}
+
+/* Modal bits are already in ui.css */
+
+/* Small screen tweak for home */
+@media (max-width: 480px) {
+  .home-body { max-height: 64vh; }
+  .home-header h1 { font-size: 24px; }
+}
+
