@@ -1,3 +1,4 @@
+// src/pages/home.tsx
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
@@ -21,6 +22,9 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 
 import { ChatFilterTabs, type ChatFilter } from "../components/home/ChatFilterTabs";
 import { ChatListPanel } from "../components/home/ChatListPanel";
+
+// ✅ NEW: import the AI panel (no other component changes)
+import { AiAgentPanel } from "../components/ai/AiAgentPanel";
 
 import "../styles/home.css";
 
@@ -49,7 +53,6 @@ export default function Home() {
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newType, setNewType] = useState<"dm" | "group">("group");
-  // For DM: this is a username (single). For group: IDs (or whatever you use).
   const [newMembers, setNewMembers] = useState("");
   const [createErr, setCreateErr] = useState<string | null>(null);
 
@@ -78,13 +81,13 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // infinite scroll (we keep it in Home so pagination stays centralized)
+  // infinite scroll
   const onHitBottom = () => {
     if (!loading && hasMore) load(page + 1);
   };
   const sentinelRef = useInfiniteScroll(onHitBottom, [page, hasMore, loading]);
 
-  // derived lists (never show DMs that aren't mine)
+  // derived lists
   const groupMember = items.filter((x) => x.type === "group" && x.isMember);
   const dms = items.filter((x) => x.type === "dm" && x.isMember !== false);
   const otherGroups = items.filter((x) => x.type === "group" && !x.isMember);
@@ -97,14 +100,13 @@ export default function Home() {
     try {
       await AuthService.logout();
     } catch {
-      // ignore network errors; tokens are cleared anyway
+      // ignore
     } finally {
       navigate("/login");
     }
   };
 
   const handleCreate = async () => {
-    // tokens: for DM -> username; for group -> IDs (or your semantics)
     const tokens = newMembers
       .split(",")
       .map((s) => s.trim())
@@ -116,7 +118,6 @@ export default function Home() {
         return;
       }
     } else {
-      // dm: strictly one username
       if (tokens.length !== 1) {
         setCreateErr("DM_MUST_HAVE_EXACTLY_ONE_USERNAME");
         return;
@@ -153,7 +154,6 @@ export default function Home() {
         setFilter("groups");
         navigate(`/chat/${chatId}`, { state: { title: computedTitle } });
       } else {
-        // dm by username
         const username = tokens[0];
         const created = await createDmChatByUsername(username);
         const chatId = (created as any).id ?? (created as any).chatId;
@@ -200,7 +200,7 @@ export default function Home() {
         prev.map((it) => (it.id === chatId ? { ...it, isMember: true } : it))
       );
       const title = items.find((x) => x.id === chatId)?.title || "(untitled)";
-      setFilter("groups"); // it moves from Other -> Groups
+      setFilter("groups");
       openChat(chatId, title);
     } catch (e: any) {
       setJoinErr(e?.response?.data?.code ?? "FAILED_TO_JOIN_GROUP");
@@ -222,35 +222,61 @@ export default function Home() {
   return (
     <div className="shell">
       <LogoutButton onClick={handleLogout} />
-
       <div className="gradient-bg" />
 
-      <div className="card">
-        <Header count={count} onNewChat={() => setShowNewChat(true)} />
+      {/* ⬇️ NEW: non-invasive wrapper to show AI on the right */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 420px",
+          gap: 24,
+          alignItems: "stretch",
+        }}
+      >
+        {/* ORIGINAL CARD — untouched */}
+        <div className="card">
+          <Header count={count} onNewChat={() => setShowNewChat(true)} />
 
-        {err && <ErrorToast message={err} />}
-        {joinErr && <ErrorToast message={joinErr} />}
+          {err && <ErrorToast message={err} />}
+          {joinErr && <ErrorToast message={joinErr} />}
 
-        <ChatFilterTabs value={filter} onChange={setFilter} counts={counts} />
+          <ChatFilterTabs value={filter} onChange={setFilter} counts={counts} />
 
-        {!loading && !hasFilteredItems && !err && !hasAnyItems && (
-          <EmptyState onCreateClick={() => setShowNewChat(true)} />
-        )}
+          {!loading && !hasFilteredItems && !err && !hasAnyItems && (
+            <EmptyState onCreateClick={() => setShowNewChat(true)} />
+          )}
 
-        <ChatListPanel
-          items={filteredItems}
-          loading={loading}
-          hasMore={hasMore}
-          joiningId={joiningId}
-          fmtTime={fmt}
-          onOpen={(id) => {
-            const t = filteredItems.find((x) => x.id === id)?.title;
-            openChat(id, t);
+          <ChatListPanel
+            items={filteredItems}
+            loading={loading}
+            hasMore={hasMore}
+            joiningId={joiningId}
+            fmtTime={fmt}
+            onOpen={(id) => {
+              const t = filteredItems.find((x) => x.id === id)?.title;
+              openChat(id, t);
+            }}
+            onJoin={handleJoin}
+            onLoadMore={() => load(page + 1)}
+            sentinelRef={sentinelRef}
+          />
+        </div>
+
+        {/* ✅ NEW: AI panel on the right (no props needed) */}
+        <aside
+          style={{
+            height: "100%",
+            position: "sticky",
+            top: 0,
+            borderRadius: 18,
+            background: "rgba(255,255,255,0.78)",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
+            overflow: "hidden",
           }}
-          onJoin={handleJoin}
-          onLoadMore={() => load(page + 1)}
-          sentinelRef={sentinelRef}
-        />
+        >
+          <AiAgentPanel />
+        </aside>
       </div>
 
       <NewChatModal
