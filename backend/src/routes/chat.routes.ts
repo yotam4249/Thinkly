@@ -4,10 +4,14 @@ import { ChatController } from "../controllers/chat.controller";
 
 export const chatRouter = Router();
 
+// List & meta & messages
 chatRouter.get("/", authMiddleware, ChatController.listChats);
-chatRouter.post("/", authMiddleware, ChatController.createChat);
 chatRouter.get("/:chatId/messages", authMiddleware, ChatController.getMessages);
-chatRouter.post("/:chatId/join", authMiddleware, ChatController.joinGroup);
-
-// keep AFTER "/:chatId/messages" so it doesn't shadow it
 chatRouter.get("/:chatId", authMiddleware, ChatController.getChat);
+
+// Creation (split endpoints; DM is username-only)
+chatRouter.post("/dm", authMiddleware, ChatController.createDmChat);
+chatRouter.post("/group", authMiddleware, ChatController.createGroupChat);
+
+// Group join
+chatRouter.post("/:chatId/join", authMiddleware, ChatController.joinGroup);
