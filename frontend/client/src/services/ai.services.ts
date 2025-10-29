@@ -1,47 +1,63 @@
-// src/services/ai.services.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/services/ai.service.ts
+import api from "./api";
 
-// ----- Q&A (cache-first) -----
-export async function askQuestion(
-  question: string
-): Promise<{ cached: boolean; answer: string }> {
-  const res = await fetch("/api/ai/qa", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Q&A failed: ${res.status} ${text}`);
-  }
-  return res.json();
-}
-
-// ----- Quiz (cache-first) -----
 export type QuizItem = {
   id: string;
-  type: "mcq" | "open";
   question: string;
-  options?: string[];
-  answer: string;
+  options: [string, string, string, string];
+  correctIndex: number; // 0..3
 };
+
 export type QuizPayload = {
   topic: string;
   level: string;
   items: QuizItem[];
 };
 
+/**
+ * Ask a normal AI question (non-quiz)
+ * Automatically includes JWT from api.ts
+ */
+export async function askQuestion(
+  question: string
+): Promise<{ cached: boolean; answer: string }> {
+  console.log("[FE][AI] askQuestion →", { question });
+
+  try {
+    const { data } = await api.post<{ cached: boolean; answer: string }>(
+      "/ai/qa", // ✅ no double /api
+      { question }
+    );
+
+    console.log("[FE][AI] askQuestion response:", data);
+    return data;
+  } catch (err: any) {
+    console.error("[FE][AI] askQuestion error:", err?.response || err);
+    throw err;
+  }
+}
+
+/**
+ * Generate or fetch cached quiz
+ * Each quiz has 5 questions × 4 options × 1 correct answer
+ */
 export async function getQuiz(
   topic: string,
   level: string
 ): Promise<{ cached: boolean; quiz: QuizPayload }> {
-  const res = await fetch("/api/ai/quiz", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ topic, level }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Quiz generation failed: ${res.status} ${text}`);
+  console.log("[FE][AI] getQuiz →", { topic, level });
+
+  try {
+    const { data } = await api.post<{ cached: boolean; quiz: QuizPayload }>(
+      "/ai/quiz", // ✅ no double /api
+      { topic, level }
+    );
+
+    console.log("[FE][AI] getQuiz response:", data);
+    return data;
+  } catch (err: any) {
+    console.error("[FE][AI] getQuiz error:", err?.response || err);
+    throw err;
   }
-  return res.json();
 }

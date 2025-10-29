@@ -21,51 +21,59 @@ function qnaKey(normalizedQ: string) {
 export async function getCachedAnswer(question: string): Promise<string | null> {
   const nq = norm(question);
   const key = qnaKey(nq);
+  console.log("[CACHE] GET", key);
   const ans = await redis.get(key);
+  console.log("[CACHE] GET result:", ans ? `HIT (${ans.length} chars)` : "MISS");
   return ans ?? null;
 }
 
 export async function setCachedAnswer(question: string, answer: string): Promise<void> {
   const nq = norm(question);
   const key = qnaKey(nq);
+  console.log("[CACHE] SET", key, `(EX ${QNA_TTL_SECONDS}s)`);
   await redis.set(key, answer, "EX", QNA_TTL_SECONDS);
-  // also bump popularity counters
   await incrQuestion(question);
+  console.log("[CACHE] incrQuestion OK");
 }
 
-// ---------- QUIZ ----------
+// ---------- QUIZ (MCQ-only: 5 items, 4 options, 1 correctIndex) ----------
+export type QuizItem = {
+  id: string;
+  question: string;
+  options: [string, string, string, string]; // fixed tuple of 4
+  correctIndex: number; // 0..3
+};
+export type QuizPayload = {
+  topic: string;
+  level: string;
+  items: QuizItem[]; // exactly 5
+};
+
 function quizKey(topic: string, level: string) {
   const t = norm(topic);
   const l = norm(level);
   return `ai:cache:quiz:${h(`${t}|${l}`)}`;
 }
 
-export type QuizItem = {
-  id: string;
-  type: "mcq" | "open";
-  question: string;
-  options?: string[];
-  answer: string; // canonical answer or correct option
-};
-export type QuizPayload = {
-  topic: string;
-  level: string;
-  items: QuizItem[];
-};
-
 export async function getCachedQuiz(topic: string, level: string): Promise<QuizPayload | null> {
   const key = quizKey(topic, level);
+  console.log("[CACHE] GET", key);
   const raw = await redis.get(key);
+  console.log("[CACHE] GET result:", raw ? `HIT (${raw.length} chars)` : "MISS");
   if (!raw) return null;
   try {
     return JSON.parse(raw) as QuizPayload;
-  } catch {
+  } catch (e) {
+    console.error("[CACHE] JSON.parse error:", e);
     return null;
   }
 }
 
 export async function setCachedQuiz(topic: string, level: string, quiz: QuizPayload): Promise<void> {
   const key = quizKey(topic, level);
-  await redis.set(key, JSON.stringify(quiz), "EX", QUIZ_TTL_SECONDS);
+  const payload = JSON.stringify(quiz);
+  console.log("[CACHE] SET", key, `(len ${payload.length}) (EX ${QUIZ_TTL_SECONDS}s)`);
+  await redis.set(key, payload, "EX", QUIZ_TTL_SECONDS);
   await incrQuiz(topic, level);
+  console.log("[CACHE] incrQuiz OK");
 }

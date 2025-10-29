@@ -4,5 +4,7 @@ import { qaAnswer } from "../controllers/ai.qa.controller";
 
 export const aiQaRouter = express.Router();
 
-// POST /api/ai/qa
-aiQaRouter.post("/qa", qaAnswer);
+aiQaRouter.post("/qa", (req, res, next) => {
+  console.log("[ROUTE] POST /api/ai/qa body:", req.body);
+  next();
+}, qaAnswer);
