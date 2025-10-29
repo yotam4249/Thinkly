@@ -23,7 +23,6 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ChatFilterTabs, type ChatFilter } from "../components/home/ChatFilterTabs";
 import { ChatListPanel } from "../components/home/ChatListPanel";
 
-// ✅ NEW: import the AI panel (no other component changes)
 import { AiAgentPanel } from "../components/ai/AiAgentPanel";
 
 import "../styles/home.css";
@@ -224,16 +223,9 @@ export default function Home() {
       <LogoutButton onClick={handleLogout} />
       <div className="gradient-bg" />
 
-      {/* ⬇️ NEW: non-invasive wrapper to show AI on the right */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 420px",
-          gap: 24,
-          alignItems: "stretch",
-        }}
-      >
-        {/* ORIGINAL CARD — untouched */}
+      {/* Two-column layout (left: chats, right: AI). Height-bounded so right panel doesn't grow */}
+      <div className="home-two-col">
+        {/* LEFT: original card — untouched */}
         <div className="card">
           <Header count={count} onNewChat={() => setShowNewChat(true)} />
 
@@ -262,19 +254,8 @@ export default function Home() {
           />
         </div>
 
-        {/* ✅ NEW: AI panel on the right (no props needed) */}
-        <aside
-          style={{
-            height: "100%",
-            position: "sticky",
-            top: 0,
-            borderRadius: 18,
-            background: "rgba(255,255,255,0.78)",
-            backdropFilter: "blur(10px)",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-        >
+        {/* RIGHT: fixed-height panel; AiAgentPanel scrolls internally */}
+        <aside className="ai-panel-card">
           <AiAgentPanel />
         </aside>
       </div>

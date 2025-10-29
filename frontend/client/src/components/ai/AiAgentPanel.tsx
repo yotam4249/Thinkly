@@ -18,32 +18,47 @@ When a user agrees to take a quiz:
 export function AiAgentPanel() {
   const [messages, setMessages] = useState<Msg[]>([
     { id: "sys", role: "system", content: SYSTEM_PROMPT },
-    {
-      id: "init",
-      role: "assistant",
-      content:
-        "Hi! I'm your learning assistant 📘 Would you like to take a short quiz to test your knowledge?",
-    },
+    { id: "greet", role: "assistant", content: "How can I help you today?" },
   ]);
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [quizStage, setQuizStage] = useState<QuizStage>("confirm");
+
+  // Start in IDLE (no yes/no until Start Quiz is pressed)
+  const [quizStage, setQuizStage] = useState<QuizStage>("idle");
   const [quizTopic, setQuizTopic] = useState("");
   const [quizLevel, setQuizLevel] = useState("");
   const listRef = useRef<HTMLDivElement | null>(null);
 
+  /** Always scroll the list to bottom */
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const el = listRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  };
+
+  // Safety: whenever messages change, keep scrolled to bottom
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, loading]);
+    scrollToBottom("smooth");
+  }, [messages]);
 
   async function onSend(e?: React.FormEvent) {
     e?.preventDefault();
     const text = input.trim();
     if (!text || loading) return;
 
+    // If user types during quiz flow, follow the user and reset flow
+    // (except when in 'topic' stage we treat the input as the topic)
+    if (quizStage !== "topic") {
+      setQuizStage("idle");
+    }
+
     const userMsg: Msg = { id: crypto.randomUUID(), role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    scrollToBottom("auto");
     setLoading(true);
 
     try {
@@ -56,27 +71,50 @@ export function AiAgentPanel() {
 
       const { reader } = await streamChat(cleanHistory);
 
+      // create an empty assistant message to stream into
       let assistant: Msg = { id: crypto.randomUUID(), role: "assistant", content: "" };
       setMessages((prev) => [...prev, assistant]);
+      scrollToBottom("auto");
 
       const decoder = new TextDecoder();
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        assistant = { ...assistant, content: assistant.content + decoder.decode(value) };
+
+        assistant = {
+          ...assistant,
+          content: assistant.content + decoder.decode(value),
+        };
+
         setMessages((prev) => prev.map((m) => (m.id === assistant.id ? assistant : m)));
+        scrollToBottom("auto");
       }
     } catch {
       setMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role: "assistant", content: "Sorry, I couldn't reach the AI right now." },
       ]);
+      scrollToBottom("auto");
     } finally {
       setLoading(false);
     }
   }
 
-  // --- QUIZ FLOW LOGIC --- //
+  // --- QUIZ FLOW ---
+
+  const handleStartQuiz = () => {
+    // Show confirm prompt only AFTER user clicked Start Quiz
+    setQuizStage("confirm");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Would you like to take a short quiz to test your knowledge?",
+      },
+    ]);
+    scrollToBottom("auto");
+  };
 
   const handleQuizAction = (choice: "yes" | "no") => {
     if (choice === "no") {
@@ -84,22 +122,32 @@ export function AiAgentPanel() {
         ...prev,
         { id: crypto.randomUUID(), role: "assistant", content: "No problem! You can start a quiz anytime later." },
       ]);
-      setQuizStage("idle");
+      setQuizStage("idle"); // back to idle; Start Quiz button visible again
+      scrollToBottom("auto");
       return;
     }
-
+    // yes → ask for topic
     setMessages((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), role: "assistant", content: "Awesome! What topic would you like the quiz to be about?" },
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "Awesome! What topic would you like the quiz to be about?",
+      },
     ]);
     setQuizStage("topic");
+    scrollToBottom("auto");
   };
 
   const handleSubmitTopic = (text: string) => {
-    setQuizTopic(text);
+    // Guard: if empty, ignore
+    const t = text.trim();
+    if (!t) return;
+
+    setQuizTopic(t);
     setMessages((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), role: "user", content: text },
+      { id: crypto.randomUUID(), role: "user", content: t },
       {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -107,6 +155,7 @@ export function AiAgentPanel() {
       },
     ]);
     setQuizStage("difficulty");
+    scrollToBottom("auto");
   };
 
   const handleSelectDifficulty = (level: string) => {
@@ -120,15 +169,48 @@ export function AiAgentPanel() {
         content: `Perfect! I'll prepare a ${level} quiz about ${quizTopic}. Ready to start?`,
       },
     ]);
+    // after this, show yes/no again
     setQuizStage("ready");
+    scrollToBottom("auto");
   };
 
+  const handleQuizActionFinal = (choice: "yes" | "no") => {
+    if (choice === "no") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "No worries! Let me know whenever you're ready to begin.",
+        },
+      ]);
+      setQuizStage("idle"); // show Start Quiz again
+      scrollToBottom("auto");
+      return;
+    }
+
+    // Placeholder for starting the actual quiz
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Great! Let's start your ${quizLevel} quiz on ${quizTopic}!`,
+      },
+    ]);
+    setQuizStage("idle"); // reset flow; Start Quiz button available again
+    scrollToBottom("auto");
+  };
+
+  /** Input handler that respects quiz flow */
   const handleManualInput = () => {
     if (quizStage === "topic") {
-      handleSubmitTopic(input.trim());
+      const t = input.trim();
+      if (!t) return;
+      handleSubmitTopic(t);
       setInput("");
     } else {
-      onSend();
+      onSend(); // any other stage → follow the user and reset quiz flow inside onSend
     }
   };
 
@@ -139,6 +221,13 @@ export function AiAgentPanel() {
           <div className="ai-title">AI Teaching Assistant</div>
           <div className="ai-sub">Ask, learn, or start a quiz anytime</div>
         </div>
+
+        {/* Start Quiz button visible in idle or confirm (lets user re-open) */}
+        {(quizStage === "idle" || quizStage === "confirm") === true && (
+          <button className="btn btn-primary" onClick={handleStartQuiz}>
+            Start Quiz
+          </button>
+        )}
       </header>
 
       <div className="ai-list" ref={listRef}>
@@ -149,6 +238,42 @@ export function AiAgentPanel() {
               <div className="bubble">{m.content}</div>
             </div>
           ))}
+
+        {/* Yes/No only AFTER clicking Start Quiz */}
+        {quizStage === "confirm" && (
+          <div className="ai-quiz-buttons">
+            <button onClick={() => handleQuizAction("yes")} className="btn btn-primary">
+              Yes
+            </button>
+            <button onClick={() => handleQuizAction("no")} className="btn">
+              No
+            </button>
+          </div>
+        )}
+
+        {/* Difficulty selection */}
+        {quizStage === "difficulty" && (
+          <div className="ai-quiz-buttons difficulty">
+            {["Easy", "Intermediate", "Hard", "Expert"].map((lvl) => (
+              <button key={lvl} onClick={() => handleSelectDifficulty(lvl)} className="btn btn-diff">
+                {lvl}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Yes/No after “Ready to start?” */}
+        {quizStage === "ready" && (
+          <div className="ai-quiz-buttons">
+            <button onClick={() => handleQuizActionFinal("yes")} className="btn btn-primary">
+              Yes
+            </button>
+            <button onClick={() => handleQuizActionFinal("no")} className="btn">
+              No
+            </button>
+          </div>
+        )}
+
         {loading && (
           <div className="ai-msg assistant">
             <div className="bubble bubble-pending">
@@ -159,29 +284,6 @@ export function AiAgentPanel() {
           </div>
         )}
       </div>
-
-      {/* YES/NO prompt */}
-      {quizStage === "confirm" && (
-        <div className="ai-quiz-buttons">
-          <button onClick={() => handleQuizAction("yes")} className="btn btn-primary">
-            Yes
-          </button>
-          <button onClick={() => handleQuizAction("no")} className="btn">
-            No
-          </button>
-        </div>
-      )}
-
-      {/* Difficulty selection */}
-      {quizStage === "difficulty" && (
-        <div className="ai-quiz-buttons difficulty">
-          {["Easy", "Intermediate", "Hard", "Expert"].map((lvl) => (
-            <button key={lvl} onClick={() => handleSelectDifficulty(lvl)} className="btn btn-diff">
-              {lvl}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Input bar (always visible) */}
       <form
