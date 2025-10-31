@@ -153,6 +153,7 @@
     border-color 200ms ease,
     transform 160ms ease;
   overflow: hidden;                      /* ✅ clip overflow */
+  position: relative;                    /* for ::before unread bar */
 }
 .dm-item:hover {
   background: #f3f5ff;
@@ -252,23 +253,45 @@
   white-space: nowrap;
   padding-right: 8px;
 }
+
+/* --- DM header action buttons: perfectly square + centered --- */
+.dmw-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .dmw-actions button {
-  margin-left: 6px;
+  width: 28px;               /* square */
+  height: 28px;
+  padding: 0;                /* remove extra space */
+  box-sizing: border-box;
+
   border: 1px solid rgba(0,0,0,0.12);
   background: #fff;
   border-radius: 8px;
-  width: 28px;
-  height: 24px;
+
+  display: inline-flex;      /* center glyphs */
+  align-items: center;
+  justify-content: center;
+
+  line-height: 1;            /* no baseline offset */
+  font-size: 16px;           /* glyph size for — / ✕ */
+
   cursor: pointer;
-  transition: transform 160ms ease, box-shadow 180ms ease;
+  transition: transform 160ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 .dmw-actions button:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 .dmw-actions button:active { transform: translateY(0); }
+.dmw-actions button:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
 
-/* Messages */
+/* ---------- Messages ---------- */
 .dmw-body {
   overflow: auto;
   padding: 8px;
@@ -283,18 +306,33 @@
   font-size: 13px;
 }
 
-.dmw-msg { display: flex; }
-.dmw-msg .dmw-bubble {
-  margin-left: auto;
+/* Row */
+.dmw-msg { display: flex; padding: 4px 8px; }
+
+/* Alignment */
+.dmw-msg.mine   { justify-content: flex-end; }
+.dmw-msg.theirs { justify-content: flex-start; }
+
+/* Bubble base */
+.dmw-bubble {
   max-width: 85%;
-  background: #e9ecff;
   border: 1px solid rgba(0,0,0,0.06);
   padding: 8px 10px;
   border-radius: 10px;
   transition: background 180ms ease, border-color 180ms ease, opacity 180ms ease;
+  display: inline-flex;
+  flex-direction: column;
 }
+
+/* Side-specific visuals (don’t force all to right) */
+.dmw-msg.mine .dmw-bubble   { margin-left: 0;  margin-right: 0;   background: #e9ecff; border-top-right-radius: 6px; }
+.dmw-msg.theirs .dmw-bubble { margin-left: 0;  margin-right: auto; background: #f4f5f7; border-top-left-radius: 6px; }
+
+/* Pending (optimistic) */
 .dmw-msg.ghost .dmw-bubble { opacity: 0.6; }
-.dmw-text { font-size: 14px; }
+
+/* Text + time */
+.dmw-text { font-size: 14px; white-space: pre-wrap; word-break: break-word; }
 .dmw-time {
   font-size: 11px;
   opacity: 0.6;
@@ -357,11 +395,9 @@
 @media (max-width: 860px) {
   .dm-dock {
     width: 240px;
-    min-width: 240px;
   }
   .dm-dock.closed {
     width: 32px;
-    min-width: 32px;
   }
   .dm-window {
     width: 280px;
@@ -372,11 +408,9 @@
 @media (max-width: 520px) {
   .dm-dock {
     width: 220px;
-    min-width: 220px;
   }
   .dm-dock.closed {
     width: 30px;
-    min-width: 30px;
   }
 
   /* tiny nudge on very small screens (avoid system overlays) */
@@ -389,4 +423,33 @@
     bottom: 12px;
     max-height: 60vh;
   }
+}
+
+/* --- Unread (dock item) state --- */
+.dm-item.has-unseen {
+  background: #f2f3f5;
+}
+.dm-item.has-unseen:hover { background: #eceef2; }
+.dm-item.has-unseen:active { background: #e6e9ee; }
+
+.dm-item.has-unseen:focus-visible {
+  outline: 2px solid #b6c2d9;
+  outline-offset: 2px;
+}
+
+/* optional: a tiny left highlight bar for extra affordance */
+.dm-item.has-unseen::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: #9aa6b2; /* neutral grey */
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+.dmw-actions button {
+  outline: none;              /* remove default blue ring */
+}
+.dmw-actions button:focus {   /* safety */
+  outline: none;
 }
