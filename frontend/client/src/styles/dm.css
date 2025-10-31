@@ -1,0 +1,392 @@
+/* =========================================================
+   DM Dock + Floating DM Windows
+   Path: src/components/dm/dm.css
+   Open/Close use EXACT same animation (timing + easing)
+   ========================================================= */
+
+/* Layout helpers controlled by JS (DmDock.tsx) */
+:root {
+  --dm-dock-offset: 52px;                 /* used by LogoutButton */
+  --dm-dock-padding: 0px;                 /* used by .shell to avoid overlap */
+
+  /* Motion tokens — both open/close use these */
+  --dm-ease: cubic-bezier(.16,1,.3,1);    /* same easing for both directions */
+  --dm-dur: 480ms;                        /* same duration for both directions */
+  --dm-dur-soft: 420ms;
+  --dm-dur-fast: 260ms;
+}
+
+/* ---------- Dock (overlay, left side) ---------- */
+.dm-dock {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+
+  /* OPEN state dimensions */
+  width: 280px;
+  min-width: 280px;
+
+  /* OPEN state visuals (explicit so opening animates back from 'closed') */
+  transform: translateX(0);
+  opacity: 1;
+  background: #ffffff;
+  border-right: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 2px 0 22px rgba(0,0,0,0.06);
+  z-index: 2000;
+
+  /* silky transitions — SAME tokens for both directions */
+  will-change: width, transform, opacity, box-shadow, background-color;
+  transition:
+    width var(--dm-dur) var(--dm-ease),
+    transform var(--dm-dur) var(--dm-ease),
+    opacity var(--dm-dur-soft) ease,
+    box-shadow var(--dm-dur-soft) ease,
+    background-color var(--dm-dur-fast) ease;
+}
+
+.dm-dock.closed {
+  width: 36px;
+  min-width: 36px;
+
+  /* CLOSED state visuals */
+  transform: translateX(-12px);
+  opacity: 0.95;
+  box-shadow: 1px 0 14px rgba(0,0,0,0.05);
+}
+
+/* Toggle pill — vertically centered, sits just outside the edge */
+.dm-dock-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: -14px;
+
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.1);
+  background: #fff;
+  cursor: pointer;
+  z-index: 6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  will-change: transform, box-shadow, background;
+  transition:
+    transform 320ms var(--dm-ease),
+    box-shadow 280ms ease,
+    background 180ms ease;
+}
+.dm-dock-toggle:hover {
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+  transform: translateY(-50%) scale(1.06);
+}
+.dm-dock-toggle:active {
+  transform: translateY(-50%) scale(0.985);
+}
+
+/* Header + search */
+.dm-dock-header {
+  padding: 12px 12px 8px;
+  background: linear-gradient(180deg, #f7f8ff 0%, #ffffff 60%);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.dm-dock-header h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+.dm-search {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  outline: none;
+  transition:
+    box-shadow .2s ease,
+    border-color .2s ease,
+    background .2s ease;
+}
+.dm-search:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(147,197,253,.28);
+  background: #fff;
+}
+
+/* ---------- List area ---------- */
+.dm-list {
+  padding: 6px 6px 12px;
+  display: grid;
+  gap: 6px;
+  height: calc(100vh - 108px);
+  overflow: auto;
+  scroll-behavior: smooth;              /* pleasant inner scroll */
+  grid-auto-rows: 56px;                 /* ✅ fixed row height for each item */
+}
+.dm-empty {
+  padding: 16px;
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+/* ---------- Item row (fixed height) ---------- */
+.dm-item {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  height: 56px;                         /* ✅ fixed height */
+  min-height: 56px;                     /* ✅ guard against growth */
+  max-height: 56px;                     /* ✅ guard against growth */
+  padding: 8px;
+  border-radius: 10px;
+  background: #f8f8ff;
+  border: 1px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  will-change: background, border-color, transform;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    transform 160ms ease;
+  overflow: hidden;                      /* ✅ clip overflow */
+}
+.dm-item:hover {
+  background: #f3f5ff;
+  border-color: rgba(0,0,0,0.06);
+}
+.dm-item:active { transform: scale(0.99); }
+
+/* Prevent row expansion from inner content */
+.dm-item * {
+  white-space: nowrap;                   /* ✅ single line */
+  text-overflow: ellipsis;               /* ✅ add … when clipped */
+  overflow: hidden;
+}
+
+/* Avatar circle */
+.dm-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #dfe3ff;
+  flex: 0 0 auto;                        /* ✅ never grow */
+}
+
+/* Text meta */
+.dm-meta { overflow: hidden; }
+.dm-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.dm-sub {
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1.1;
+}
+
+/* ---------- Floating windows stage (right-bottom) ---------- */
+.dmw-stage {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 2001;
+}
+
+/* Single window */
+.dm-window {
+  position: fixed;
+  bottom: 20px;
+  width: 300px;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  pointer-events: auto;
+  overflow: hidden;
+
+  /* ultra-smooth enter (same ease family) */
+  transform: translateY(12px) scale(0.985);
+  opacity: 0;
+  animation: dmw-pop-in var(--dm-dur-soft) var(--dm-ease) forwards;
+}
+
+@keyframes dmw-pop-in {
+  0%   { transform: translateY(12px) scale(0.985); opacity: 0; }
+  60%  { transform: translateY(2px)  scale(1.000); opacity: 1; }
+  100% { transform: translateY(0)    scale(1.000); opacity: 1; }
+}
+
+/* Minimized state */
+.dm-window.min { height: auto; max-height: none; }
+.dm-window.min .dmw-body,
+.dm-window.min .dmw-composer { display: none; }
+
+/* Window header */
+.dmw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  background: linear-gradient(180deg, #f7f8ff, #ffffff);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  user-select: none;
+  cursor: default;
+}
+.dmw-title {
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+.dmw-actions button {
+  margin-left: 6px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  border-radius: 8px;
+  width: 28px;
+  height: 24px;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 180ms ease;
+}
+.dmw-actions button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.dmw-actions button:active { transform: translateY(0); }
+
+/* Messages */
+.dmw-body {
+  overflow: auto;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  scroll-behavior: smooth;
+}
+.dmw-loading,
+.dmw-empty {
+  padding: 8px;
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+.dmw-msg { display: flex; }
+.dmw-msg .dmw-bubble {
+  margin-left: auto;
+  max-width: 85%;
+  background: #e9ecff;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background 180ms ease, border-color 180ms ease, opacity 180ms ease;
+}
+.dmw-msg.ghost .dmw-bubble { opacity: 0.6; }
+.dmw-text { font-size: 14px; }
+.dmw-time {
+  font-size: 11px;
+  opacity: 0.6;
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* Composer */
+.dmw-composer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.dmw-composer input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  outline: none;
+  transition: box-shadow .2s ease, border-color .2s ease, background .2s ease;
+}
+.dmw-composer input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(147,197,253,.28);
+  background: #fff;
+}
+.dmw-composer button {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 180ms ease;
+}
+.dmw-composer button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.dmw-composer button:active { transform: translateY(0); }
+
+/* ---------- Motion accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .dm-dock,
+  .dm-dock-toggle,
+  .dm-item,
+  .dm-window,
+  .dmw-actions button,
+  .dmw-composer input,
+  .dmw-composer button {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ---------- Responsive tweaks ---------- */
+@media (max-width: 860px) {
+  .dm-dock {
+    width: 240px;
+    min-width: 240px;
+  }
+  .dm-dock.closed {
+    width: 32px;
+    min-width: 32px;
+  }
+  .dm-window {
+    width: 280px;
+    max-height: 55vh;
+  }
+}
+
+@media (max-width: 520px) {
+  .dm-dock {
+    width: 220px;
+    min-width: 220px;
+  }
+  .dm-dock.closed {
+    width: 30px;
+    min-width: 30px;
+  }
+
+  /* tiny nudge on very small screens (avoid system overlays) */
+  .dm-dock-toggle { top: 45%; }
+
+  .dm-window {
+    width: 92vw;
+    left: 4vw;
+    right: 4vw;
+    bottom: 12px;
+    max-height: 60vh;
+  }
+}

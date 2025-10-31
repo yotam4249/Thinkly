@@ -19,11 +19,14 @@ import { NewChatModal } from "../components/home/NewChatModal";
 import { ErrorToast } from "../components/common/ErrorToast";
 import { LogoutButton } from "../components/common/LogoutButton";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
-
 import { ChatFilterTabs, type ChatFilter } from "../components/home/ChatFilterTabs";
 import { ChatListPanel } from "../components/home/ChatListPanel";
-
 import { AiAgentPanel } from "../components/ai/AiAgentPanel";
+
+// ✅ DM dock & floating windows – rendered outside so layout stays the same
+import { DmWindowsProvider } from "../components/dm/DmWindowsProvider";
+import { DmDock } from "../components/dm/DmDock";
+import { DmWindows } from "../components/dm/DmWindows";
 
 import "../styles/home.css";
 
@@ -44,7 +47,7 @@ export default function Home() {
   const [err, setErr] = useState<string | null>(null);
   const [joinErr, setJoinErr] = useState<string | null>(null);
 
-  // filter
+  // filter (only "groups" and "discover")
   const [filter, setFilter] = useState<ChatFilter>("groups");
 
   // create modal
@@ -88,11 +91,10 @@ export default function Home() {
 
   // derived lists
   const groupMember = items.filter((x) => x.type === "group" && x.isMember);
-  const dms = items.filter((x) => x.type === "dm" && x.isMember !== false);
-  const otherGroups = items.filter((x) => x.type === "group" && !x.isMember);
+  const dms = items.filter((x) => x.type === "dm" && x.isMember !== false); // for the dock only
+  const discoverGroups = items.filter((x) => x.type === "group" && !x.isMember);
 
-  const filteredItems =
-    filter === "groups" ? groupMember : filter === "dms" ? dms : otherGroups;
+  const filteredItems = filter === "groups" ? groupMember : discoverGroups;
 
   // actions
   const handleLogout = async () => {
@@ -142,7 +144,7 @@ export default function Home() {
               lastMessageText: "",
               lastMessageAt: new Date().toISOString(),
               isMember: true,
-            },
+            } as ChatListItem,
             ...prev,
           ]);
         }
@@ -153,31 +155,17 @@ export default function Home() {
         setFilter("groups");
         navigate(`/chat/${chatId}`, { state: { title: computedTitle } });
       } else {
+        // DM creation still supported (navigates directly), but DMs aren't listed in left card
         const username = tokens[0];
         const created = await createDmChatByUsername(username);
         const chatId = (created as any).id ?? (created as any).chatId;
-        const reused = Boolean((created as any).reused);
-
-        const computedTitle = "(DM)";
-        if (!reused) {
-          setItems((prev) => [
-            {
-              id: chatId,
-              type: "dm",
-              title: computedTitle,
-              lastMessageText: "",
-              lastMessageAt: new Date().toISOString(),
-              isMember: true,
-            },
-            ...prev,
-          ]);
-        }
+        // don't switch to a "dms" tab (it no longer exists)
         setNewTitle("");
         setNewMembers("");
         setNewType("group");
         setShowNewChat(false);
-        setFilter("dms");
-        navigate(`/chat/${chatId}`, { state: { title: computedTitle } });
+        setFilter("groups");
+        navigate(`/chat/${chatId}`, { state: { title: "(DM)" } });
       }
     } catch (e: any) {
       setCreateErr(e?.response?.data?.code ?? "FAILED_TO_CREATE_CHAT");
@@ -210,69 +198,73 @@ export default function Home() {
 
   const counts = {
     groups: groupMember.length,
-    dms: dms.length,
-    other: otherGroups.length,
+    discover: discoverGroups.length,
   };
 
   const count = filteredItems.length;
-  const hasAnyItems = items.length > 0;
+  const hasAnyItems = items.some((x) => x.type === "group"); // only groups matter in this panel now
   const hasFilteredItems = count > 0;
 
   return (
-    <div className="shell">
-      <LogoutButton onClick={handleLogout} />
-      <div className="gradient-bg" />
+    <DmWindowsProvider>
+      <div className="shell">
+        <LogoutButton onClick={handleLogout} />
+        <div className="gradient-bg" />
 
-      {/* Two-column layout (left: chats, right: AI). Height-bounded so right panel doesn't grow */}
-      <div className="home-two-col">
-        {/* LEFT: original card — untouched */}
-        <div className="card">
-          <Header count={count} onNewChat={() => setShowNewChat(true)} />
+        {/* Two-column layout (left: chats, right: AI) */}
+        <div className="home-two-col">
+          <div className="card">
+            <Header count={count} onNewChat={() => setShowNewChat(true)} />
 
-          {err && <ErrorToast message={err} />}
-          {joinErr && <ErrorToast message={joinErr} />}
+            {err && <ErrorToast message={err} />}
+            {joinErr && <ErrorToast message={joinErr} />}
 
-          <ChatFilterTabs value={filter} onChange={setFilter} counts={counts} />
+            <ChatFilterTabs value={filter} onChange={setFilter} counts={counts} />
 
-          {!loading && !hasFilteredItems && !err && !hasAnyItems && (
-            <EmptyState onCreateClick={() => setShowNewChat(true)} />
-          )}
+            {!loading && !hasFilteredItems && !err && !hasAnyItems && (
+              <EmptyState onCreateClick={() => setShowNewChat(true)} />
+            )}
 
-          <ChatListPanel
-            items={filteredItems}
-            loading={loading}
-            hasMore={hasMore}
-            joiningId={joiningId}
-            fmtTime={fmt}
-            onOpen={(id) => {
-              const t = filteredItems.find((x) => x.id === id)?.title;
-              openChat(id, t);
-            }}
-            onJoin={handleJoin}
-            onLoadMore={() => load(page + 1)}
-            sentinelRef={sentinelRef}
-          />
+            <ChatListPanel
+              items={filteredItems}
+              loading={loading}
+              hasMore={hasMore}
+              joiningId={joiningId}
+              fmtTime={fmt}
+              onOpen={(id) => {
+                const t = filteredItems.find((x) => x.id === id)?.title;
+                openChat(id, t);
+              }}
+              onJoin={handleJoin}
+              onLoadMore={() => load(page + 1)}
+              sentinelRef={sentinelRef}
+            />
+          </div>
+
+          {/* RIGHT: AI */}
+          <aside className="ai-panel-card">
+            <AiAgentPanel />
+          </aside>
         </div>
 
-        {/* RIGHT: fixed-height panel; AiAgentPanel scrolls internally */}
-        <aside className="ai-panel-card">
-          <AiAgentPanel />
-        </aside>
+        <NewChatModal
+          open={showNewChat}
+          creating={creating}
+          createErr={createErr}
+          newTitle={newTitle}
+          setNewTitle={setNewTitle}
+          newType={newType}
+          setNewType={setNewType}
+          newMembers={newMembers}
+          setNewMembers={setNewMembers}
+          onClose={() => setShowNewChat(false)}
+          onCreate={handleCreate}
+        />
       </div>
 
-      <NewChatModal
-        open={showNewChat}
-        creating={creating}
-        createErr={createErr}
-        newTitle={newTitle}
-        setNewTitle={setNewTitle}
-        newType={newType}
-        setNewType={setNewType}
-        newMembers={newMembers}
-        setNewMembers={setNewMembers}
-        onClose={() => setShowNewChat(false)}
-        onCreate={handleCreate}
-      />
-    </div>
+      {/* ✅ DMs live only here */}
+      <DmDock dms={dms} loading={loading} />
+      <DmWindows />
+    </DmWindowsProvider>
   );
 }

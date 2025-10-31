@@ -401,3 +401,14 @@
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(0,0,0,0.06);
 }
+
+.shell {
+  padding-left: var(--dm-dock-padding, 0px);
+  transition: padding-left 260ms cubic-bezier(.2,.8,.2,1);
+}
+
+/* Optional: keep the two-column area from overflowing while animating */
+.home-two-col {
+  transition: transform 260ms cubic-bezier(.2,.8,.2,1), opacity 200ms ease;
+  will-change: transform;
+}

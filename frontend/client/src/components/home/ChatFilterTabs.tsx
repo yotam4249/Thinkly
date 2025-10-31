@@ -1,42 +1,28 @@
+// src/components/home/ChatFilterTabs.tsx
 import React from "react";
 
-export type ChatFilter = "groups" | "dms" | "other";
+export type ChatFilter = "groups" | "discover";
 
 type Props = {
   value: ChatFilter;
   onChange: (v: ChatFilter) => void;
-  counts: { groups: number; dms: number; other: number };
+  counts: { groups: number; discover: number };
 };
 
 export function ChatFilterTabs({ value, onChange, counts }: Props) {
   return (
-    <div className="tabs" role="tablist" aria-label="Chat list filter">
+    <div className="tabs">
       <button
-        type="button"
-        role="tab"
-        aria-selected={value === "groups"}
         className={`tab ${value === "groups" ? "active" : ""}`}
         onClick={() => onChange("groups")}
       >
-        Groups ({counts.groups})
+        My Groups {counts.groups ? `(${counts.groups})` : ""}
       </button>
       <button
-        type="button"
-        role="tab"
-        aria-selected={value === "dms"}
-        className={`tab ${value === "dms" ? "active" : ""}`}
-        onClick={() => onChange("dms")}
+        className={`tab ${value === "discover" ? "active" : ""}`}
+        onClick={() => onChange("discover")}
       >
-        DMs ({counts.dms})
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={value === "other"}
-        className={`tab ${value === "other" ? "active" : ""}`}
-        onClick={() => onChange("other")}
-      >
-        Other ({counts.other})
+        Discover {counts.discover ? `(${counts.discover})` : ""}
       </button>
     </div>
   );
