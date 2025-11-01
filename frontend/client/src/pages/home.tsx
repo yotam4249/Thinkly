@@ -29,6 +29,8 @@ import { DmDock } from "../components/dm/DmDock";
 import { DmWindows } from "../components/dm/DmWindows";
 
 import "../styles/home.css";
+import { useAppSelector } from "../store/hooks";
+import { selectAuthUser } from "../store/slices/authSlice";
 
 function fmt(iso?: string) {
   return iso ? new Date(iso).toLocaleString() : "";
@@ -60,6 +62,8 @@ export default function Home() {
 
   // joining state
   const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  const user = useAppSelector(selectAuthUser)
 
   // load page
   const load = async (p: number) => {
@@ -210,6 +214,9 @@ export default function Home() {
       <div className="shell">
         <LogoutButton onClick={handleLogout} />
         <div className="gradient-bg" />
+        <div className="hello-user-fixed">
+          {user ? `Hello, ${user.username}! 👋` : "Hello! 👋"}
+        </div>
 
         {/* Two-column layout (left: chats, right: AI) */}
         <div className="home-two-col">

@@ -1,29 +1,37 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useMemo, useState } from "react";
-import { Link /*, useNavigate*/ } from "react-router-dom";
-import AuthService from "../services/auth.service";
-import type { Gender, User } from "../types/user.type";
+import { Link, useNavigate } from "react-router-dom";
+import type { Gender } from "../types/user.type";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import {
+  selectAuthError,
+  selectAuthIsLoading,
+} from "../store/slices/authSlice";
 import "../styles/register.css";
-
-// use the SVGs as image sources (works in any Vite setup without SVGR)
 import visibility from "../assets/visibility.svg";
 import visibilityOff from "../assets/visibilityOff.svg";
+import { registerThunk } from "../store/thunks/authThunk";
 
 type FieldError = string | null;
 
 export default function Register() {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+
+  const error = useAppSelector(selectAuthError);
+  const isLoading = useAppSelector(selectAuthIsLoading);
+
   // form fields
-  const [username, setUsername] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [dateOfBirth, setDateOfBirth] = useState<string>(""); // HTML date: YYYY-MM-DD
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
 
   // ui state
-  const [showPw, setShowPw] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [showPw, setShowPw] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // simple validations
+  // validations
   const usernameError: FieldError = useMemo(() => {
     if (!username) return null;
     const u = username.trim().toLowerCase();
@@ -40,17 +48,17 @@ export default function Register() {
     return null;
   }, [password]);
 
-  const underage: boolean = useMemo(() => {
+  const underage = useMemo(() => {
     if (!dateOfBirth) return false;
     const d = new Date(dateOfBirth);
     if (Number.isNaN(d.getTime())) return false;
     const msYear = 365.25 * 24 * 3600 * 1000;
     const age = Math.floor((Date.now() - d.getTime()) / msYear);
-    return age < 16; // keep in sync with server
+    return age < 16;
   }, [dateOfBirth]);
 
   const dateError: FieldError = useMemo(() => {
-    if (!dateOfBirth) return null; // optional
+    if (!dateOfBirth) return null;
     const d = new Date(dateOfBirth);
     if (Number.isNaN(d.getTime())) return "Please enter a valid date.";
     if (underage) return "You must be at least 16 years old to register.";
@@ -64,50 +72,27 @@ export default function Register() {
     !passwordError &&
     !dateError &&
     !underage &&
-    !loading;
+    !isLoading;
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMsg(null);
     if (!canSubmit) return;
 
-    setLoading(true);
     try {
-      const user: User = await AuthService.register({
-        username: username.trim().toLowerCase(),
-        password,
-        dateOfBirth: dateOfBirth || undefined,
-        gender: (gender as Gender) || undefined,
-      });
-      setMsg(`Welcome, ${user.username}!`);
-      // reset sensitive fields (leave username as QoL choice)
-      setPassword("");
-      setDateOfBirth("");
-      setGender("");
-      // const navigate = useNavigate(); // if you want auto-redirect:
-      // navigate("/");
-    } catch (err: unknown) {
-      let code = "REGISTER_FAILED";
-      if (typeof err === "object" && err !== null) {
-        // @ts-expect-error axios error optional shape
-        code = err.response?.data?.code ?? code;
-      }
-      // map a few known backend codes to human messages
-      const friendly =
-        code === "USERNAME_EXISTS"
-          ? "This username is already taken."
-          : code === "INVALID_DATE_OF_BIRTH"
-          ? "Please provide a valid date of birth."
-          : code === "AGE_TOO_YOUNG"
-          ? "You must be at least 16 years old to register."
-          : code === "INVALID_GENDER"
-          ? "Please choose a valid gender option."
-          : code === "BAD REQUEST"
-          ? "Please fill username and password."
-          : code;
-      setMsg(friendly);
-    } finally {
-      setLoading(false);
+      await dispatch(
+        registerThunk({
+          username: username.trim().toLowerCase(),
+          password,
+          dateOfBirth: dateOfBirth || undefined,
+          gender: (gender as Gender) || undefined,
+        })
+      ).unwrap();
+
+      // ✅ Navigate immediately after successful registration
+      navigate("/login", { replace: true });
+    } catch {
+      // errors are handled by slice -> `error` selector shows them
     }
   };
 
@@ -117,10 +102,9 @@ export default function Register() {
       <div className="auth-blob b2" />
 
       <section className="auth-card">
-        {/* Left visual pane */}
         <div className="visual-pane">
           <span className="visual-badge">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 10h3l-4 6V12H9l4-6v6z" />
             </svg>
             Get started
@@ -129,134 +113,83 @@ export default function Register() {
           <p className="visual-copy">
             Join Ad-Wise to launch campaigns quickly and collaborate with your team.
           </p>
-
-          <div className="brand-mark">
-            <span className="brand-mark-dot" />
-            <span>No credit card • Free to start</span>
-          </div>
         </div>
 
-        {/* Right form pane */}
         <div className="form-pane">
           <header className="form-header">
-            <div className="brand-dot" aria-hidden />
             <h1 className="auth-heading">Create account</h1>
             <p className="auth-subheading">Join Ad-Wise in a few seconds</p>
           </header>
 
           <form onSubmit={onSubmit} noValidate>
-            {/* Username */}
-            <label className="auth-label" htmlFor="username">
-              Username
-            </label>
-            <div className="auth-input-wrapper">
-              <input
-                id="username"
-                className="auth-input"
-                placeholder="choose a username"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                aria-invalid={!!usernameError}
-                aria-describedby={usernameError ? "username-err" : undefined}
-              />
-            </div>
-            {usernameError && (
-              <p id="username-err" className="auth-msg" role="alert">
-                {usernameError}
-              </p>
-            )}
+            <label className="auth-label" htmlFor="username">Username</label>
+            <input
+              id="username"
+              className="auth-input"
+              placeholder="choose a username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            {usernameError && <p className="auth-msg">{usernameError}</p>}
 
-            {/* Password with toggle */}
-            <label className="auth-label" htmlFor="password">
-              Password
-            </label>
+            <label className="auth-label" htmlFor="password">Password</label>
             <div className="auth-input-wrapper">
               <input
                 id="password"
                 className="auth-input"
                 type={showPw ? "text" : "password"}
                 placeholder="at least 6 characters"
-                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                aria-invalid={!!passwordError}
-                aria-describedby={passwordError ? "password-err" : undefined}
               />
               <button
                 type="button"
                 className="pw-toggle-inside"
                 onClick={() => setShowPw((s) => !s)}
-                aria-label={showPw ? "Hide password" : "Show password"}
               >
                 <img
                   src={showPw ? visibilityOff : visibility}
-                  alt={showPw ? "Hide password" : "Show password"}
+                  alt="toggle"
                   className="pw-icon"
                 />
               </button>
             </div>
-            {passwordError && (
-              <p id="password-err" className="auth-msg" role="alert">
-                {passwordError}
-              </p>
-            )}
+            {passwordError && <p className="auth-msg">{passwordError}</p>}
 
-            {/* Date of Birth (optional) */}
-            <label className="auth-label" htmlFor="dateOfBirth">
-              Date of Birth <span className="optional">(optional)</span>
-            </label>
-            <div className="auth-input-wrapper date-input">
-              <input
-                id="dateOfBirth"
-                className="auth-input"
-                type="date"
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                max={new Date().toISOString().slice(0, 10)} // prevent future dates
-                aria-invalid={!!dateError}
-                aria-describedby={dateError ? "dob-err" : undefined}
-              />
-            </div>
-            {dateError && (
-              <p id="dob-err" className="auth-msg" role="alert">
-                {dateError}
-              </p>
-            )}
+            <label className="auth-label" htmlFor="dateOfBirth">Date of Birth (optional)</label>
+            <input
+              id="dateOfBirth"
+              type="date"
+              className="auth-input"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+            />
+            {dateError && <p className="auth-msg">{dateError}</p>}
 
-            {/* Gender (optional) */}
-            <label className="auth-label" htmlFor="gender">
-              Gender <span className="optional">(optional)</span>
-            </label>
-            <div className="auth-input-wrapper">
-              <select
-                id="gender"
-                className="auth-input"
-                value={gender}
-                onChange={(e) => setGender(e.target.value as Gender | "")}
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-                <option value="prefer_not_to_say">Prefer not to say</option>
-              </select>
-            </div>
+            <label className="auth-label" htmlFor="gender">Gender (optional)</label>
+            <select
+              id="gender"
+              className="auth-input"
+              value={gender}
+              onChange={(e) => setGender(e.target.value as Gender | "")}
+            >
+              <option value="">Select</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+              <option value="prefer_not_to_say">Prefer not to say</option>
+            </select>
 
-            <button className="btn-primary" type="submit" disabled={!canSubmit}>
-              {loading ? "Creating…" : "Create account"}
+            <button className="btn-primary" type="submit" disabled={!canSubmit || isLoading}>
+              {isLoading ? "Creating…" : "Create account"}
             </button>
 
             <div className="btn-row">
-              <Link to="/login" className="btn-ghost">
-                Already have an account? Sign in
-              </Link>
+              <Link to="/login" className="btn-ghost">Already have an account? Sign in</Link>
             </div>
 
-            {msg && (
-              <p className="auth-msg" role="status">
-                {msg}
-              </p>
-            )}
+            {error && <p className="auth-msg" role="alert">{error}</p>}
+            {msg && <p className="auth-msg" role="status">{msg}</p>}
           </form>
         </div>
       </section>
