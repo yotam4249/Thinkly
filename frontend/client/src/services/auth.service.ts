@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // const AuthService = { register, login, logout };
 // export default AuthService;
+// src/services/auth.service.ts
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import api, { TokenManager } from "./api";
 import type { Gender, User } from "../types/user.type";
-
-// 👇 import the store and the action
-import { store } from "../store/store";          // adjust path if different
-import { setUser, resetAuth } from "../store/slices/authSlice";
+import { store } from "../store/store";
+import { setUser } from "../store/slices/authSlice";
 
 type AuthResponse = {
   user: User;
@@ -19,35 +18,30 @@ export type Credentials = {
   password: string;
   dateOfBirth?: string;
   gender?: Gender;
+  /** S3 key from the upload step */
+  profileImage?: string | null;
 };
 
 async function register(creds: Credentials): Promise<User> {
   const { data } = await api.post<AuthResponse>("/auth/register", creds);
-  // do not set tokens here — we decided registration keeps you logged out
+  // Your flow keeps user logged-out after register (navigate to /login)
   return data.user;
 }
 
 async function login(creds: Credentials): Promise<User> {
   const { data } = await api.post<AuthResponse>("/auth/login", creds);
   TokenManager.set(data.accessToken, data.refreshToken);
-  // ensure Redux reflects logged-in user
-  store.dispatch(setUser(data.user));
+  store.dispatch(setUser(data.user)); // will include profileImageUrl if backend sent it
   return data.user;
 }
 
 async function logout(): Promise<void> {
   const refresh = TokenManager.refresh ?? localStorage.getItem("refreshToken");
   try {
-    if (refresh) {
-      await api.post("/auth/logout", { refreshToken: refresh });
-    }
+    if (refresh) await api.post("/auth/logout", { refreshToken: refresh });
   } finally {
-    // clear tokens first
     TokenManager.clear();
-    // and now ensure Redux sees "logged out"
-    // choose one — both are fine:
     store.dispatch(setUser(null));
-    // or: store.dispatch(resetAuth());
   }
 }
 

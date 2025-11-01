@@ -6,4 +6,7 @@ export type User = {
   username: string;
   dateOfBirth?: string; 
   gender?: Gender;
+  profileImage?: string | null;
+  /** Ephemeral presigned GET url for immediate display */
+  profileImageUrl?: string | null;
 };

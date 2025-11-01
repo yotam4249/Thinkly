@@ -26,7 +26,7 @@ export const loginThunk = createAsyncThunk<
 
 export const registerThunk = createAsyncThunk<
     User,
-    { username: string; password: string; dateOfBirth?: string; gender?: Gender },
+    { username: string; password: string; dateOfBirth?: string; gender?: Gender ,profileImage?: string | null;},
     { rejectValue: string }
 >(
     'auth/register',

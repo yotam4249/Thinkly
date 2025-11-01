@@ -6,6 +6,7 @@ export interface IUser extends Document {
   dateOfBirth:Date;
   gender?: "male" | "female" | "other" | "prefer_not_to_say";
   refreshTokens: string[]; 
+  profileImage?: string | null;
 }
 
 const userSchema = new Schema<IUser>(
@@ -27,6 +28,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: ["male", "female", "other", "prefer_not_to_say"],
     },
+    profileImage: { type: String ,default: null},
   },
   { timestamps: true }
 );

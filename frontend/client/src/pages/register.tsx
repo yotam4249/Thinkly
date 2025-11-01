@@ -1,16 +1,16 @@
+
+// src/pages/register.tsx
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { Gender } from "../types/user.type";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import {
-  selectAuthError,
-  selectAuthIsLoading,
-} from "../store/slices/authSlice";
+import { selectAuthError, selectAuthIsLoading } from "../store/slices/authSlice";
 import "../styles/register.css";
 import visibility from "../assets/visibility.svg";
 import visibilityOff from "../assets/visibilityOff.svg";
 import { registerThunk } from "../store/thunks/authThunk";
+import { presignUpload, uploadViaPresignedPut } from "../services/s3.service";
 
 type FieldError = string | null;
 
@@ -27,9 +27,12 @@ export default function Register() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
 
-  // ui state
+  // image state
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  // UI
   const [showPw, setShowPw] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
   // validations
   const usernameError: FieldError = useMemo(() => {
@@ -74,11 +77,32 @@ export default function Register() {
     !underage &&
     !isLoading;
 
+  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    setFile(f);
+    setPreview(f ? URL.createObjectURL(f) : null);
+  }
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setMsg(null);
     if (!canSubmit) return;
 
+    // Will hold the S3 key returned from presigned upload
+    let profileImage: string | undefined;
+
+    // 1) Upload to S3 first (if a file was chosen)
+    if (file) {
+      const contentType = file.type || "image/jpeg";
+      // filename used for nicer keys, not required
+      const { url, key } = await presignUpload(contentType, {
+        filename: username.trim().toLowerCase(),
+        prefix: "users/new",
+      });
+      await uploadViaPresignedPut(url, file, contentType);
+      profileImage = key; // store this on the user
+    }
+
+    // 2) Register with the profileImage key
     try {
       await dispatch(
         registerThunk({
@@ -86,13 +110,14 @@ export default function Register() {
           password,
           dateOfBirth: dateOfBirth || undefined,
           gender: (gender as Gender) || undefined,
+          profileImage, // send S3 key to backend
         })
       ).unwrap();
 
-      // ✅ Navigate immediately after successful registration
+      // Your flow: go to login (user is not auto-logged-in)
       navigate("/login", { replace: true });
     } catch {
-      // errors are handled by slice -> `error` selector shows them
+      // Slice handles error state
     }
   };
 
@@ -104,7 +129,7 @@ export default function Register() {
       <section className="auth-card">
         <div className="visual-pane">
           <span className="visual-badge">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 10h3l-4 6V12H9l4-6v6z" />
             </svg>
             Get started
@@ -129,6 +154,7 @@ export default function Register() {
               placeholder="choose a username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
             />
             {usernameError && <p className="auth-msg">{usernameError}</p>}
 
@@ -141,17 +167,15 @@ export default function Register() {
                 placeholder="at least 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
               />
               <button
                 type="button"
                 className="pw-toggle-inside"
                 onClick={() => setShowPw((s) => !s)}
+                aria-label="Toggle password visibility"
               >
-                <img
-                  src={showPw ? visibilityOff : visibility}
-                  alt="toggle"
-                  className="pw-icon"
-                />
+                <img src={showPw ? visibilityOff : visibility} alt="" className="pw-icon" />
               </button>
             </div>
             {passwordError && <p className="auth-msg">{passwordError}</p>}
@@ -180,6 +204,24 @@ export default function Register() {
               <option value="prefer_not_to_say">Prefer not to say</option>
             </select>
 
+            <label className="auth-label" htmlFor="profileImage">Profile image (optional)</label>
+            <input
+              id="profileImage"
+              type="file"
+              accept="image/*"
+              className="auth-input"
+              onChange={onPickFile}
+            />
+            {preview && (
+              <div style={{ marginTop: 8 }}>
+                <img
+                  src={preview}
+                  alt="preview"
+                  style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 12 }}
+                />
+              </div>
+            )}
+
             <button className="btn-primary" type="submit" disabled={!canSubmit || isLoading}>
               {isLoading ? "Creating…" : "Create account"}
             </button>
@@ -189,7 +231,6 @@ export default function Register() {
             </div>
 
             {error && <p className="auth-msg" role="alert">{error}</p>}
-            {msg && <p className="auth-msg" role="status">{msg}</p>}
           </form>
         </div>
       </section>
