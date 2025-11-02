@@ -3,6 +3,8 @@ import type { ChatMessage } from "../../types/chat.type";
 import { isQuizPreviewMessage, parseQuizPreviewMessage } from "../../utils/quiz.utils";
 import { InteractiveQuiz } from "../ai/InteractiveQuiz";
 import { presignGet } from "../../services/s3.service";
+import { Avatar } from "../common/Avatar";
+import type { Gender } from "../../types/user.type";
 
 const fmtTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
@@ -75,6 +77,16 @@ export function MessageRow({
       role="article"
       aria-label={`Message from ${displayName}${timeStr ? ` at ${timeStr}` : ""}`}
     >
+      {!mine && (
+        <div className="message-avatar-left">
+          <Avatar
+            keyPath={m.senderProfileImage ?? undefined}
+            gender={(m.senderGender as Gender) ?? undefined}
+            size={36}
+            alt={displayName}
+          />
+        </div>
+      )}
       <div 
         className={`bubble ${mine ? "bubble-me" : "bubble-other"}`}
         aria-label={isPending ? "Sending message" : undefined}
@@ -132,6 +144,16 @@ export function MessageRow({
           </div>
         )}
       </div>
+      {mine && (
+        <div className="message-avatar-right">
+          <Avatar
+            keyPath={m.senderProfileImage ?? undefined}
+            gender={(m.senderGender as Gender) ?? undefined}
+            size={36}
+            alt={displayName}
+          />
+        </div>
+      )}
       <footer className="meta" aria-label="Message metadata">
         <span className="meta-name" aria-label={`Sender: ${displayName}`}>
           {displayName}

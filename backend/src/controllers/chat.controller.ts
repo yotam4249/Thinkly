@@ -179,7 +179,7 @@ export class ChatController {
       const msgs = await MessageModel.find(q)
         .sort({ _id: -1 })
         .limit(pageSize)
-        .populate({ path: "senderId", select: "_id username fullName name email" })
+        .populate({ path: "senderId", select: "_id username fullName name email profileImage gender" })
         .lean();
 
       const items = msgs.reverse().map((m: any) => {
@@ -196,6 +196,8 @@ export class ChatController {
           imageUrls: m.imageUrls || [],
           createdAt: toIso(m.createdAt),
           senderName,
+          senderProfileImage: senderObj?.profileImage ?? null,
+          senderGender: senderObj?.gender ?? null,
         };
       });
 

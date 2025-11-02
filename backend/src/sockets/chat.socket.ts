@@ -1,6 +1,7 @@
 import type { Server, Socket } from "socket.io";
 import { ChatModel } from "../models/chat.model";
 import { MessageModel } from "../models/message.model";
+import { UserModel } from "../models/user.model";
 import { redis } from "../services/redis.service";
 
 function roomId(chatId: string) {
@@ -63,6 +64,9 @@ export function registerChatSocket(io: Server) {
         }
       );
 
+      // Get sender profile info for broadcast
+      const sender = await UserModel.findById(user.id).select("profileImage gender").lean();
+      
       // broadcast
       io.to(roomId(chatId)).emit("message:new", {
         _id: String(msg._id),
@@ -72,6 +76,8 @@ export function registerChatSocket(io: Server) {
         text: clean || undefined,
         imageUrls: images.length > 0 ? images : undefined,
         createdAt: msg.createdAt,
+        senderProfileImage: sender?.profileImage ?? null,
+        senderGender: sender?.gender ?? null,
       });
 
       // invalidate recent chats cache for all members

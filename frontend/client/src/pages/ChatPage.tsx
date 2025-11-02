@@ -14,6 +14,8 @@ import { DmDock } from "../components/dm/DmDock";
 import { DmWindows } from "../components/dm/DmWindows";
 import type { ChatMessage } from "../types/chat.type";
 import type { ChatListItem } from "../types/chatList.type";
+import { useAppSelector } from "../store/hooks";
+import { selectAuthUser } from "../store/slices/authSlice";
 import "../styles/chat.css";
 
 function decodeUserIdFromJWT(jwt?: string | null): string | null {
@@ -36,6 +38,7 @@ type MsgWithName = ChatMessage & { senderName?: string };
 
 export default function ChatPage({ chatId }: { chatId: string }) {
   const meId = useMemo(() => decodeUserIdFromJWT(TokenManager.access) || "me", []);
+  const currentUser = useAppSelector(selectAuthUser);
   const location = useLocation();
   const routeState = (location.state as RouteState) || null;
   const chatTitleFromNav = routeState?.title || "(untitled)";
@@ -97,6 +100,8 @@ export default function ChatPage({ chatId }: { chatId: string }) {
                 : new Date(m.createdAt ?? Date.now()).toISOString(),
             pending: false,
             senderName: m.senderName ?? nameById[String(m.senderId)],
+            senderProfileImage: m.senderProfileImage ?? null,
+            senderGender: m.senderGender ?? null,
           }))
         );
       } catch {
@@ -135,6 +140,8 @@ export default function ChatPage({ chatId }: { chatId: string }) {
             : new Date(raw.createdAt ?? Date.now()).toISOString(),
         pending: false,
         senderName: raw.senderName ?? nameById[String(raw.senderId)],
+        senderProfileImage: raw.senderProfileImage ?? null,
+        senderGender: raw.senderGender ?? null,
       };
 
       if (m.chatId !== chatId) return;
@@ -199,6 +206,8 @@ export default function ChatPage({ chatId }: { chatId: string }) {
       createdAt: new Date().toISOString(),
       pending: true,
       senderName: nameById[meId] ?? "You",
+      senderProfileImage: currentUser?.profileImage ?? null,
+      senderGender: currentUser?.gender ?? null,
     };
 
     setSending(true);

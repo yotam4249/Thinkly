@@ -4,9 +4,9 @@ import { presignGet } from "../../services/s3.service";
 import type { Gender } from "../../types/user.type";
 
 // local SVG imports
-import maleAvatar from "../../assets/avatars/male.svg";
-import femaleAvatar from "../../assets/avatars/female.svg";
-import neutralAvatar from "../../assets/avatars/neutral.svg"; // optional
+import maleAvatar from "../../assets/male.svg";
+import femaleAvatar from "../../assets/female.svg";
+import neutralAvatar from "../../assets/neutral.svg"; // optional
 
 type Props = {
   url?: string | null;      // presigned GET url (if user uploaded)

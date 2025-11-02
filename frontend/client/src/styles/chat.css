@@ -311,13 +311,44 @@
 /* Row alignment */
 .row {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: flex-start;
 }
 .row.me {
   justify-items: end;
 }
 .row.other {
   justify-items: start;
+}
+
+/* Message avatars */
+.message-avatar-left {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: flex-end;
+  margin-bottom: 4px;
+}
+
+.message-avatar-right {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: flex-end;
+  margin-bottom: 4px;
+}
+
+.row.me .bubble {
+  grid-column: 2;
+  justify-self: end;
+}
+
+.row.other .bubble {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.row .meta {
+  grid-column: 2;
 }
 
 /* Message bubble */
