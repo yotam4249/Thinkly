@@ -181,46 +181,74 @@ export function AiAgentPanel() {
 
   // ----- RENDER -----
   return (
-    <div className="ai-root">
+    <div className="ai-root" role="complementary" aria-label="AI Teaching Assistant">
       {!quizMode && (
         <>
-          <header className="ai-header">
-            <div>
-              <div className="ai-title">AI Teaching Assistant</div>
-              <div className="ai-sub">Ask questions or start a quiz</div>
+          <header className="ai-header" role="banner">
+            <div className="ai-header-content">
+              <h2 className="ai-title">AI Teaching Assistant</h2>
+              <p className="ai-sub">Ask questions or start a quiz</p>
             </div>
             {(quizStage === "idle" || quizStage === "confirm") && (
-              <button className="btn btn-primary" onClick={handleStartQuiz}>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleStartQuiz}
+                aria-label="Start a quiz"
+                type="button"
+              >
                 Start Quiz
               </button>
             )}
           </header>
 
-          <div className="ai-list" ref={listRef}>
+          <div className="ai-list" ref={listRef} role="log" aria-label="AI conversation">
             {messages
               .filter((m) => m.role !== "system")
               .map((m) => (
-                <div key={m.id} className={`ai-msg ${m.role}`}>
-                  <div className="bubble">{m.content}</div>
-                </div>
+                <article 
+                  key={m.id} 
+                  className={`ai-msg ${m.role}`}
+                  role="article"
+                  aria-label={`${m.role === "user" ? "Your" : "AI's"} message`}
+                >
+                  <div className="bubble" aria-label={m.role === "assistant" ? "AI response" : "Your question"}>
+                    <div className="bubble-content">{m.content}</div>
+                  </div>
+                </article>
               ))}
 
             {/* yes/no & difficulty */}
             {quizStage === "confirm" && (
-              <div className="ai-quiz-buttons">
-                <button className="btn btn-primary" onClick={() => handleQuizAction("yes")}>
+              <div className="ai-quiz-buttons" role="group" aria-label="Confirm quiz">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => handleQuizAction("yes")}
+                  type="button"
+                  aria-label="Yes, start quiz"
+                >
                   Yes
                 </button>
-                <button className="btn" onClick={() => handleQuizAction("no")}>
+                <button 
+                  className="btn" 
+                  onClick={() => handleQuizAction("no")}
+                  type="button"
+                  aria-label="No, cancel quiz"
+                >
                   No
                 </button>
               </div>
             )}
 
             {quizStage === "difficulty" && (
-              <div className="ai-quiz-buttons difficulty">
+              <div className="ai-quiz-buttons difficulty" role="group" aria-label="Select difficulty level">
                 {["Easy", "Intermediate", "Hard"].map((lvl) => (
-                  <button key={lvl} className="btn btn-diff" onClick={() => handleSelectDifficulty(lvl)}>
+                  <button 
+                    key={lvl} 
+                    className="btn btn-diff" 
+                    onClick={() => handleSelectDifficulty(lvl)}
+                    type="button"
+                    aria-label={`Select ${lvl.toLowerCase()} difficulty`}
+                  >
                     {lvl}
                   </button>
                 ))}
@@ -228,34 +256,65 @@ export function AiAgentPanel() {
             )}
 
             {quizStage === "ready" && (
-              <div className="ai-quiz-buttons">
-                <button className="btn btn-primary" onClick={() => handleQuizActionFinal("yes")}>
+              <div className="ai-quiz-buttons" role="group" aria-label="Confirm quiz start">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => handleQuizActionFinal("yes")}
+                  type="button"
+                  aria-label="Yes, start the quiz"
+                >
                   Yes
                 </button>
-                <button className="btn" onClick={() => handleQuizActionFinal("no")}>
+                <button 
+                  className="btn" 
+                  onClick={() => handleQuizActionFinal("no")}
+                  type="button"
+                  aria-label="No, cancel"
+                >
                   No
                 </button>
               </div>
             )}
           </div>
 
-          <form className="ai-composer" onSubmit={(e) => { e.preventDefault(); handleManualInput(); }}>
+          <form 
+            className="ai-composer" 
+            onSubmit={(e) => { e.preventDefault(); handleManualInput(); }}
+            role="form"
+            aria-label="Ask AI tutor"
+          >
+            <label htmlFor="ai-input" className="sr-only">
+              Ask a question to the AI tutor
+            </label>
             <input
+              id="ai-input"
               className="ai-input"
               placeholder="Ask or chat with your tutor…"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={loading}
+              aria-label="Ask a question"
+              aria-describedby={loading ? "ai-loading" : undefined}
             />
-            <button className="ai-send" type="submit" disabled={!input.trim() || loading}>
-              Send
+            {loading && (
+              <span id="ai-loading" className="sr-only" aria-live="polite">
+                AI is thinking
+              </span>
+            )}
+            <button 
+              className="ai-send" 
+              type="submit" 
+              disabled={!input.trim() || loading}
+              aria-label={loading ? "AI is processing" : "Send message"}
+            >
+              <span>{loading ? "..." : "Send"}</span>
             </button>
           </form>
         </>
       )}
 
       {quizMode && quiz && (
-        <div className="quiz-fullscreen">
+        <div className="quiz-fullscreen" role="main" aria-label="Quiz interface">
           <QuizView
             quiz={quiz}
             currentIdx={currentIdx}
@@ -264,7 +323,12 @@ export function AiAgentPanel() {
             onNext={handleNext}
             onBack={handleBack}
           />
-          <button className="btn btn-quit" onClick={handleQuitQuiz}>
+          <button 
+            className="btn btn-quit" 
+            onClick={handleQuitQuiz}
+            type="button"
+            aria-label="Quit quiz and return to chat"
+          >
             Quit Quiz
           </button>
         </div>
@@ -293,35 +357,54 @@ function QuizView({
   const userAnswer = answers[currentIdx];
 
   return (
-    <div className="quiz-card">
-      <div className="quiz-header">
-        <div className="quiz-title">
+    <div className="quiz-card" role="region" aria-label="Quiz question">
+      <header className="quiz-header">
+        <h3 className="quiz-title" aria-label={`Quiz topic: ${quiz.topic}, difficulty: ${quiz.level}`}>
           {quiz.topic} — {quiz.level}
+        </h3>
+        <div className="quiz-progress" aria-label={`Question ${currentIdx + 1} of ${quiz.items.length}`}>
+          Question {currentIdx + 1} / {quiz.items.length}
         </div>
-        <div>Question {currentIdx + 1} / {quiz.items.length}</div>
-      </div>
+      </header>
 
-      <div className="quiz-question">{q.question}</div>
-      <div className="quiz-options">
+      <div className="quiz-question" role="heading" aria-level={4}>
+        {q.question}
+      </div>
+      <div className="quiz-options" role="radiogroup" aria-label="Quiz answer options">
         {q.options.map((opt, i) => (
           <button
             key={i}
             className={`quiz-option ${userAnswer === i ? "selected" : ""}`}
             onClick={() => onSelect(i)}
+            type="button"
+            aria-label={`Option ${String.fromCharCode(65 + i)}: ${opt}`}
+            aria-pressed={userAnswer === i}
           >
-            {String.fromCharCode(65 + i)}. {opt}
+            <span className="quiz-option-label">{String.fromCharCode(65 + i)}.</span>
+            <span className="quiz-option-text">{opt}</span>
           </button>
         ))}
       </div>
 
-      <div className="quiz-nav">
-        <button className="btn" disabled={currentIdx === 0} onClick={onBack}>
+      <nav className="quiz-nav" aria-label="Quiz navigation">
+        <button 
+          className="btn" 
+          disabled={currentIdx === 0} 
+          onClick={onBack}
+          type="button"
+          aria-label="Go to previous question"
+        >
           Back
         </button>
-        <button className="btn btn-primary" onClick={onNext}>
+        <button 
+          className="btn btn-primary" 
+          onClick={onNext}
+          type="button"
+          aria-label={currentIdx < quiz.items.length - 1 ? "Go to next question" : "Finish quiz"}
+        >
           {currentIdx < quiz.items.length - 1 ? "Next" : "Finish"}
         </button>
-      </div>
+      </nav>
     </div>
   );
 }

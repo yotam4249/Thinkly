@@ -253,30 +253,30 @@ export default function ChatPage({ chatId }: { chatId: string }) {
 
   return (
     <DmWindowsProvider>
-      <div className="chat-shell">
+      <div className="chat-shell" role="main" aria-label="Chat interface">
         <div className="chat-card">
-          {/* LEFT COLUMN */}
-          <div className="chat-header">
+          {/* LEFT COLUMN - Main Chat Area */}
+          <div className="chat-main">
             <ChatHeader chatId={chatId} title={title} />
+
+            <div className="messages-wrapper">
+              <MessageList messages={messages} meId={meId} />
+              <div ref={bottomRef} aria-hidden="true" className="messages-anchor" />
+            </div>
+
+            <div className="composer-wrapper">
+              <Composer disabled={sending} onSend={send} />
+            </div>
           </div>
 
-          <div className="messages">
-            <MessageList messages={messages} meId={meId} />
-            <div ref={bottomRef} aria-hidden="true" />
-          </div>
-
-          <div className="composer">
-            <Composer disabled={sending} onSend={send} />
-          </div>
-
-          {/* RIGHT COLUMN (AI sidebar) */}
-          <aside className="chat-aside">
+          {/* RIGHT COLUMN - AI Assistant Sidebar */}
+          <aside className="chat-aside" aria-label="AI Teaching Assistant">
             <AiAgentPanel />
           </aside>
         </div>
       </div>
 
-      {/* DM Dock and Windows */}
+      {/* DM Dock and Floating Windows */}
       <DmDock dms={dms} loading={dmsLoading} />
       <DmWindows />
     </DmWindowsProvider>

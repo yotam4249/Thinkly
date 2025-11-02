@@ -51,32 +51,62 @@ export function MessageList({
 
   return (
     <>
-      <div className="messages" ref={listRef} onScroll={handleScroll} aria-live="polite">
-        {grouped.map(([dayKey, dayMsgs]) => (
-          <div key={dayKey}>
-            <DayDivider isoDay={dayKey} />
-            {dayMsgs.map((m) => (
-            <MessageRow key={m._id || m.clientId} msg={m} meId={meId} />
-))}
+      <div 
+        className="messages" 
+        ref={listRef} 
+        onScroll={handleScroll} 
+        aria-live="polite"
+        aria-label="Chat messages"
+        role="log"
+        aria-atomic="false"
+      >
+        {grouped.length === 0 ? (
+          <div className="messages-empty" role="status" aria-live="polite">
+            <p>No messages yet. Start the conversation!</p>
           </div>
-        ))}
+        ) : (
+          grouped.map(([dayKey, dayMsgs]) => (
+            <section key={dayKey} className="message-day-group" aria-label={`Messages from ${new Date(dayKey).toLocaleDateString()}`}>
+              <DayDivider isoDay={dayKey} />
+              {dayMsgs.map((m) => (
+                <MessageRow key={m._id || m.clientId} msg={m} meId={meId} />
+              ))}
+            </section>
+          ))
+        )}
       </div>
 
-      <button
-        className={`scroll-down ${showScrollDown ? "show" : ""}`}
-        aria-label="Scroll to latest"
-        onClick={() => {
-          if (!listRef.current) return;
-          listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-          atBottomRef.current = true;
-          setShowScrollDown(false);
-        }}
-        type="button"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+      {showScrollDown && (
+        <button
+          className="scroll-down show"
+          aria-label="Scroll to latest messages"
+          onClick={() => {
+            if (!listRef.current) return;
+            listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+            atBottomRef.current = true;
+            setShowScrollDown(false);
+          }}
+          type="button"
+          aria-hidden={!showScrollDown}
+        >
+          <svg 
+            width="18" 
+            height="18" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path 
+              d="M6 9l6 6 6-6" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      )}
     </>
   );
 }

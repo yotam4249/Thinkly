@@ -4,7 +4,7 @@ import sendIcon from "../../assets/sendButton.svg";
 export function Composer({
   disabled,
   onSend,
-  placeholder = "Send message...",
+  placeholder = "Type your message...",
 }: {
   disabled?: boolean;
   onSend: (text: string) => void;
@@ -45,13 +45,19 @@ export function Composer({
     }
   };
 
-  // Enable only when there’s non-whitespace text and not externally disabled
+  // Enable only when there's non-whitespace text and not externally disabled
   const canSend = !disabled && value.trim().length > 0;
+  const charCount = value.length;
+  const charLimit = 5000; // Reasonable message limit
 
   return (
-    <div className="composer">
+    <div className="composer" role="region" aria-label="Message composer">
       <div className="input-wrap">
+        <label htmlFor="message-input" className="sr-only">
+          Type your message
+        </label>
         <textarea
+          id="message-input"
           ref={areaRef}
           className="textarea"
           placeholder={placeholder}
@@ -60,7 +66,20 @@ export function Composer({
           onKeyDown={onKeyDown}
           rows={1}
           dir="auto"
+          aria-label="Message input"
+          aria-describedby="message-hint"
+          maxLength={charLimit}
+          disabled={disabled}
         />
+        {charCount > charLimit * 0.8 && (
+          <span 
+            id="message-hint" 
+            className="char-count"
+            aria-live="polite"
+          >
+            {charCount} / {charLimit}
+          </span>
+        )}
       </div>
 
       <button
@@ -68,19 +87,23 @@ export function Composer({
         onClick={send}
         disabled={!canSend}
         aria-disabled={!canSend}
-        title={canSend ? "Send message" : "Type a message to enable"}
+        aria-label={canSend ? "Send message" : "Type a message to enable sending"}
+        title={canSend ? "Send message (Enter)" : "Type a message to enable"}
+        type="button"
       >
         <img
           src={sendIcon}
-          alt="Send"
+          alt=""
+          aria-hidden="true"
           style={{
             width: 20,
             height: 20,
             marginRight: 6,
-            filter: !canSend ? "grayscale(0.6)" : "none",
+            filter: !canSend ? "grayscale(0.6) opacity(0.5)" : "none",
+            transition: "filter 0.2s ease",
           }}
         />
-        Send
+        <span>Send</span>
       </button>
     </div>
   );

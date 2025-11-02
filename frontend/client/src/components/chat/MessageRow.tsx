@@ -16,14 +16,36 @@ export function MessageRow({ msg, meId }: { msg: ChatMessage; meId: string }) {
     ? m.senderName ?? "You"
     : m.senderName ?? m.senderId.slice(-4);
 
+  const timeStr = fmtTime(m.createdAt);
+  const isPending = m.pending;
+
   return (
-    <div className={`row ${mine ? "me" : "other"}`}>
-      <div className={`bubble ${mine ? "bubble-me" : "bubble-other"}`}>
-        {m.text}
+    <article 
+      className={`row ${mine ? "me" : "other"}`}
+      role="article"
+      aria-label={`Message from ${displayName}${timeStr ? ` at ${timeStr}` : ""}`}
+    >
+      <div 
+        className={`bubble ${mine ? "bubble-me" : "bubble-other"}`}
+        aria-label={isPending ? "Sending message" : undefined}
+      >
+        <div className="bubble-content">{m.text}</div>
       </div>
-      <div className="meta">
-        <b>{displayName}</b> {fmtTime(m.createdAt)} {m.pending ? "• sending…" : ""}
-      </div>
-    </div>
+      <footer className="meta" aria-label="Message metadata">
+        <span className="meta-name" aria-label={`Sender: ${displayName}`}>
+          {displayName}
+        </span>
+        {timeStr && (
+          <time className="meta-time" dateTime={m.createdAt} aria-label={`Sent at ${timeStr}`}>
+            {timeStr}
+          </time>
+        )}
+        {isPending && (
+          <span className="meta-pending" aria-label="Message is being sent">
+            • sending…
+          </span>
+        )}
+      </footer>
+    </article>
   );
 }
