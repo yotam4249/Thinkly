@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from "react";
 import { askQuestion, getQuiz, type QuizPayload } from "../../services/ai.services";
+import { useAppSelector } from "../../store/hooks";
+import { selectAuthUser } from "../../store/slices/authSlice";
+import { createQuizPreviewMessage } from "../../utils/quiz.utils";
 import "../../styles/ai.css";
 
 type Msg = { id: string; role: "user" | "assistant" | "system"; content: string };
@@ -10,7 +13,14 @@ function newId() {
   return crypto.randomUUID();
 }
 
-export function AiAgentPanel() {
+
+export function AiAgentPanel({
+  chatId,
+  onShareQuiz,
+}: {
+  chatId?: string;
+  onShareQuiz?: (quizText: string) => void;
+} = {}) {
   const [messages, setMessages] = useState<Msg[]>([
     { id: "sys", role: "system", content: "You are a friendly AI tutor." },
     { id: "greet", role: "assistant", content: "How can I help you today?" },
@@ -27,8 +37,9 @@ export function AiAgentPanel() {
   const [quiz, setQuiz] = useState<QuizPayload | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
-  const [score, setScore] = useState<number | null>(null);
+  const [hasSharedQuiz, setHasSharedQuiz] = useState(false);
 
+  const user = useAppSelector(selectAuthUser);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll for normal chat
@@ -126,6 +137,7 @@ export function AiAgentPanel() {
     setAnswers(Array(quiz.items.length).fill(-1));
     setQuizMode(true);
     setCurrentIdx(0);
+    setHasSharedQuiz(false); // Reset when new quiz is created
   };
 
   const handleManualInput = () => {
@@ -155,13 +167,24 @@ export function AiAgentPanel() {
     if (currentIdx > 0) setCurrentIdx(currentIdx - 1);
   };
 
+  const handleShareQuiz = () => {
+    if (!quiz || !onShareQuiz || hasSharedQuiz) return;
+    const username = user?.username || "Someone";
+    const previewMessage = createQuizPreviewMessage(username, quiz);
+    onShareQuiz(previewMessage);
+    setHasSharedQuiz(true);
+    setMessages((p) => [
+      ...p,
+      { id: newId(), role: "assistant", content: "✅ Quiz preview shared to chat!" },
+    ]);
+  };
+
   const finishQuiz = () => {
     if (!quiz) return;
     let correct = 0;
     quiz.items.forEach((q, i) => {
       if (answers[i] === q.correctIndex) correct++;
     });
-    setScore(correct);
     setQuizMode(false);
     setMessages((p) => [
       ...p,
@@ -173,6 +196,7 @@ export function AiAgentPanel() {
   const handleQuitQuiz = () => {
     setQuizMode(false);
     setQuiz(null);
+    setHasSharedQuiz(false); // Reset when quiz is quit
     setMessages((p) => [
       ...p,
       { id: newId(), role: "assistant", content: "Quiz exited. You can start a new one anytime!" },
@@ -323,14 +347,27 @@ export function AiAgentPanel() {
             onNext={handleNext}
             onBack={handleBack}
           />
-          <button 
-            className="btn btn-quit" 
-            onClick={handleQuitQuiz}
-            type="button"
-            aria-label="Quit quiz and return to chat"
-          >
-            Quit Quiz
-          </button>
+          <div className="quiz-actions">
+            {chatId && onShareQuiz && (
+              <button 
+                className="btn btn-primary" 
+                onClick={handleShareQuiz}
+                disabled={hasSharedQuiz}
+                type="button"
+                aria-label={hasSharedQuiz ? "Quiz already shared" : "Share quiz to chat"}
+              >
+                📤 {hasSharedQuiz ? "Quiz Shared" : "Share Quiz"}
+              </button>
+            )}
+            <button 
+              className="btn btn-quit" 
+              onClick={handleQuitQuiz}
+              type="button"
+              aria-label="Quit quiz and return to chat"
+            >
+              Quit Quiz
+            </button>
+          </div>
         </div>
       )}
     </div>

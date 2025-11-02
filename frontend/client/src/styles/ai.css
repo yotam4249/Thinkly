@@ -436,9 +436,15 @@
     gap: 12px;
   }
   
-  .btn-quit {
+  .quiz-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
     margin-top: 20px;
-    align-self: center;
+    flex-wrap: wrap;
+  }
+  
+  .btn-quit {
     background: color-mix(in oklab, #ff5c5c 12%, var(--surface));
     color: #ff5c5c;
     border: 1.5px solid color-mix(in oklab, #ff5c5c 40%, transparent);

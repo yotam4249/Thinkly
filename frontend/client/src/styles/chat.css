@@ -719,6 +719,303 @@
   white-space: pre-wrap;
 }
 
+/* Quiz preview styles */
+.quiz-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quiz-preview-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: inherit;
+}
+
+.quiz-preview-text strong {
+  font-weight: 600;
+}
+
+.quiz-preview-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-small {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(.2,.8,.2,1);
+  background: color-mix(in oklab, var(--surface-2) 90%, transparent);
+  color: var(--text);
+  border: 1.5px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+
+.btn-small:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-small.btn-primary {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 8px color-mix(in oklab, var(--brand) 30%, transparent);
+}
+
+.btn-small.btn-primary:hover {
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--brand) 40%, transparent);
+}
+
+.btn-small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.quiz-expanded {
+  white-space: pre-wrap;
+  font-family: ui-monospace, monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.quiz-line {
+  margin-bottom: 2px;
+}
+
+/* Interactive quiz in chat messages */
+.quiz-interactive-wrapper {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.chat-quiz-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  width: 100%;
+}
+
+.chat-quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 40%, transparent);
+  gap: 12px;
+}
+
+.chat-quiz-title {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: inherit;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-quiz-progress {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.chat-quiz-question {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: inherit;
+  padding: 12px;
+  background: color-mix(in oklab, var(--surface-2) 60%, transparent);
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.chat-quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-quiz-option {
+  text-align: left;
+  padding: 12px 14px;
+  border: 1.5px solid color-mix(in oklab, var(--border) 50%, transparent);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--surface) 98%, transparent);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(.2,.8,.2,1);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.chat-quiz-option-label {
+  font-weight: 700;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+.chat-quiz-option-text {
+  flex: 1;
+  text-align: left;
+}
+
+.chat-quiz-option:hover {
+  background: color-mix(in oklab, var(--surface-2) 85%, transparent);
+  border-color: color-mix(in oklab, var(--brand) 60%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+
+.chat-quiz-option.selected {
+  background: linear-gradient(135deg, 
+    color-mix(in oklab, var(--brand) 15%, transparent) 0%,
+    color-mix(in oklab, var(--brand-2) 12%, transparent) 100%);
+  border-color: var(--brand);
+  box-shadow: 
+    0 3px 12px color-mix(in oklab, var(--brand) 25%, transparent),
+    0 1px 4px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  font-weight: 600;
+}
+
+.chat-quiz-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  gap: 10px;
+}
+
+/* Score screen styles */
+.chat-quiz-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.chat-quiz-score-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-quiz-score-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin: 0;
+  color: inherit;
+  letter-spacing: -0.01em;
+}
+
+.chat-quiz-score-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+  font-weight: 500;
+}
+
+.chat-quiz-score-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px;
+  background: linear-gradient(135deg, 
+    color-mix(in oklab, var(--brand) 15%, transparent) 0%,
+    color-mix(in oklab, var(--brand-2) 12%, transparent) 100%);
+  border-radius: 16px;
+  border: 2px solid var(--brand);
+  box-shadow: 0 4px 16px color-mix(in oklab, var(--brand) 20%, transparent);
+  min-width: 140px;
+}
+
+.chat-quiz-score-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--brand);
+  line-height: 1;
+}
+
+.chat-quiz-score-percentage {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.chat-quiz-score-message {
+  font-size: 15px;
+  font-weight: 600;
+  color: inherit;
+  margin-top: 4px;
+}
+
+/* Adjust bubble padding for quiz content */
+.row .bubble:has(.quiz-interactive-wrapper) {
+  padding: 16px;
+  max-width: min(600px, 85%);
+}
+
+/* Dark theme adjustments for quiz in chat */
+.me .bubble .chat-quiz-question {
+  background: color-mix(in oklab, rgba(255, 255, 255, 0.15) 60%, transparent);
+  border-color: color-mix(in oklab, rgba(255, 255, 255, 0.3) 45%, transparent);
+}
+
+.me .bubble .chat-quiz-option {
+  background: color-mix(in oklab, rgba(255, 255, 255, 0.12) 98%, transparent);
+  border-color: color-mix(in oklab, rgba(255, 255, 255, 0.3) 50%, transparent);
+}
+
+.me .bubble .chat-quiz-option:hover {
+  background: color-mix(in oklab, rgba(255, 255, 255, 0.18) 85%, transparent);
+  border-color: color-mix(in oklab, rgba(255, 255, 255, 0.4) 60%, transparent);
+}
+
+.me .bubble .chat-quiz-option.selected {
+  background: linear-gradient(135deg, 
+    color-mix(in oklab, rgba(255, 255, 255, 0.25) 15%, transparent) 0%,
+    color-mix(in oklab, rgba(255, 255, 255, 0.2) 12%, transparent) 100%);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.me .bubble .chat-quiz-score-display {
+  background: linear-gradient(135deg, 
+    color-mix(in oklab, rgba(255, 255, 255, 0.2) 15%, transparent) 0%,
+    color-mix(in oklab, rgba(255, 255, 255, 0.15) 12%, transparent) 100%);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.me .bubble .chat-quiz-score-number {
+  color: white;
+}
+
 .meta-name {
   font-weight: 600;
 }

@@ -11,9 +11,11 @@ const asDayKey = (iso?: string) => {
 export function MessageList({
   messages,
   meId,
+  onSend,
 }: {
   messages: ChatMessage[];
   meId: string;
+  onSend?: (text: string) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
@@ -69,7 +71,7 @@ export function MessageList({
             <section key={dayKey} className="message-day-group" aria-label={`Messages from ${new Date(dayKey).toLocaleDateString()}`}>
               <DayDivider isoDay={dayKey} />
               {dayMsgs.map((m) => (
-                <MessageRow key={m._id || m.clientId} msg={m} meId={meId} />
+                <MessageRow key={m._id || m.clientId} msg={m} meId={meId} onSend={onSend} />
               ))}
             </section>
           ))

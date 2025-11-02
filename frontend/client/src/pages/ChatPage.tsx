@@ -260,7 +260,7 @@ export default function ChatPage({ chatId }: { chatId: string }) {
             <ChatHeader chatId={chatId} title={title} />
 
             <div className="messages-wrapper">
-              <MessageList messages={messages} meId={meId} />
+              <MessageList messages={messages} meId={meId} onSend={send} />
               <div ref={bottomRef} aria-hidden="true" className="messages-anchor" />
             </div>
 
@@ -271,7 +271,10 @@ export default function ChatPage({ chatId }: { chatId: string }) {
 
           {/* RIGHT COLUMN - AI Assistant Sidebar */}
           <aside className="chat-aside" aria-label="AI Teaching Assistant">
-            <AiAgentPanel />
+            <AiAgentPanel 
+              chatId={chatId}
+              onShareQuiz={(quizText) => send(quizText)}
+            />
           </aside>
         </div>
       </div>
