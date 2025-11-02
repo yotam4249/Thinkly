@@ -404,8 +404,9 @@
   right: 16px;
   bottom: 76px;
   z-index: 3;
-  display: inline-grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
   border-radius: 20px;
@@ -421,7 +422,16 @@
   opacity: 0;
   transform: translateY(8px) scale(0.9);
   transition: all 0.25s cubic-bezier(.2,.8,.2,1);
+  padding: 0;
+  margin: 0;
 }
+
+.scroll-down svg {
+  display: block;
+  margin: 0;
+  flex-shrink: 0;
+}
+
 .scroll-down:hover {
   transform: translateY(0) scale(1.05);
   box-shadow: 
