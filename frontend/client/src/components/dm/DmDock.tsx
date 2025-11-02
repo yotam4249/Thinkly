@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatListItem } from "../../types/chatList.type";
 import type { Gender } from "../../types/user.type";
 import { useDmWindows } from "./DmWindowsProvider";
@@ -80,7 +80,7 @@ export function DmDock({ dms, loading, className }: Props) {
     root.style.setProperty("--dm-dock-padding", offset);
     return () => {
       root.style.setProperty("--dm-dock-offset", `${offsetWhenClosed}px`);
-      root.style.setProperty("--dm-dock-padding", "0px");
+      root.style.setProperty("--dm-dock-padding", `${offsetWhenClosed}px`);
     };
   }, [open]);
 

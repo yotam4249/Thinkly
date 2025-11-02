@@ -418,14 +418,18 @@
 }
 
 .shell {
-  padding-left: var(--dm-dock-padding, 0px);
-  transition: padding-left 260ms cubic-bezier(.2,.8,.2,1);
+  /* Base padding from ui.css - keep responsive but align left with logout button */
+  --shell-base-padding: clamp(12px, 4vw, 48px);
+  --shell-base-padding-left: 6px; /* Shifted left from logout button position */
+  padding: var(--shell-base-padding);
+  padding-left: calc(var(--shell-base-padding-left) + var(--dm-dock-padding, 0px)) !important;
+  transition: padding-left var(--dm-dur, 480ms) var(--dm-ease, cubic-bezier(.16,1,.3,1)) !important;
+  will-change: padding-left;
 }
 
 /* Optional: keep the two-column area from overflowing while animating */
 .home-two-col {
-  transition: transform 260ms cubic-bezier(.2,.8,.2,1), opacity 200ms ease;
-  will-change: transform;
+  /* Transition handled by parent .shell padding-left */
 }
 
 /* --- Greeting to the right of the logout button (same size as logout) --- */
@@ -453,7 +457,7 @@
   line-height: 1;                    /* prevents extra height */
   color: #111827;
   white-space: nowrap;
-  transition: left 260ms cubic-bezier(.2,.8,.2,1), margin-left 260ms cubic-bezier(.2,.8,.2,1);
+  transition: left var(--dm-dur, 480ms) var(--dm-ease, cubic-bezier(.16,1,.3,1));
 }
 
 /* If space is tight on small screens, stack under logout */
@@ -466,7 +470,7 @@
 
 .logout-btn-fixed {
   left: calc(12px + var(--dm-dock-padding, 0px));
-  transition: left 260ms cubic-bezier(.2,.8,.2,1);
+  transition: left var(--dm-dur, 480ms) var(--dm-ease, cubic-bezier(.16,1,.3,1));
 }
 
 /* Profile button: centered above the chats card */
@@ -481,7 +485,7 @@
   border-radius: 6px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   font-weight: 500;
-  transition: left 260ms cubic-bezier(.2,.8,.2,1), transform 260ms cubic-bezier(.2,.8,.2,1);
+  transition: left var(--dm-dur, 480ms) var(--dm-ease, cubic-bezier(.16,1,.3,1)), transform var(--dm-dur, 480ms) var(--dm-ease, cubic-bezier(.16,1,.3,1));
 }
 
 /* Adjust profile button position when DM dock is open */
