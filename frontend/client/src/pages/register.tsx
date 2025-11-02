@@ -213,11 +213,11 @@ export default function Register() {
               onChange={onPickFile}
             />
             {preview && (
-              <div style={{ marginTop: 8 }}>
+              <div className="profile-preview-container">
                 <img
                   src={preview}
                   alt="preview"
-                  style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 12 }}
+                  className="profile-preview"
                 />
               </div>
             )}
