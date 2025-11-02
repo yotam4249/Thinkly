@@ -468,3 +468,25 @@
   left: calc(12px + var(--dm-dock-padding, 0px));
   transition: left 260ms cubic-bezier(.2,.8,.2,1);
 }
+
+/* Profile button: centered above the chats card */
+.profile-btn-fixed {
+  position: fixed;
+  top: 12px;
+  left: calc(50vw - 222px);
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 6px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+  transition: left 260ms cubic-bezier(.2,.8,.2,1), transform 260ms cubic-bezier(.2,.8,.2,1);
+}
+
+/* Adjust profile button position when DM dock is open */
+@media (min-width: 769px) {
+  .profile-btn-fixed {
+    left: calc(50vw - 222px + var(--dm-dock-padding, 0px) / 2);
+  }
+}

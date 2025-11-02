@@ -7,6 +7,7 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 import ChatPage from "./pages/ChatPage";
 import Home from "./pages/home";
+import Profile from "./pages/profile";
 
 function ChatRoute() {
   const { id } = useParams();
@@ -31,8 +32,9 @@ function AppRoutes() {
       <Route path="/login" element={<Login/>} />
       <Route path="/register" element={<Register/>} />
       <Route path="/chat/:id" element={<ChatRoute/>} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
       <Route path="/home" element={<Home />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

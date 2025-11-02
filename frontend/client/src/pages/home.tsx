@@ -18,6 +18,7 @@ import { EmptyState } from "../components/home/EmptyState";
 import { NewChatModal } from "../components/home/NewChatModal";
 import { ErrorToast } from "../components/common/ErrorToast";
 import { LogoutButton } from "../components/common/LogoutButton";
+import { ProfileButton } from "../components/common/ProfileButton";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ChatFilterTabs, type ChatFilter } from "../components/home/ChatFilterTabs";
 import { ChatListPanel } from "../components/home/ChatListPanel";
@@ -223,6 +224,7 @@ export default function Home() {
     <DmWindowsProvider>
       <div className="shell">
         <LogoutButton onClick={handleLogout} />
+        <ProfileButton />
         <div className="gradient-bg" />
         <div className="hello-user-fixed">
           {user ? `Hello, ${user.username}! 👋` : "Hello! 👋"}
