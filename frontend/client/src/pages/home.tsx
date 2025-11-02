@@ -224,9 +224,6 @@ export default function Home() {
       <div className="shell">
         <LogoutButton onClick={handleLogout} />
         <div className="gradient-bg" />
-        <div className="hello-user-fixed">
-          {user ? `Hello, ${user.username}! 👋` : "Hello! 👋"}
-        </div>
 
         {/* Two-column layout (left: chats, right: AI) */}
         <div className="home-two-col">

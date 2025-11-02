@@ -1,9 +1,14 @@
+import { useAppSelector } from "../../store/hooks";
+import { selectAuthUser } from "../../store/slices/authSlice";
+
 type Props = {
   count: number;
   onNewChat: () => void;
 };
 
 export function Header({ count, onNewChat }: Props) {
+  const user = useAppSelector(selectAuthUser);
+
   return (
     <header className="home-header no-wrap">
       <div className="home-title-wrap">
@@ -20,17 +25,22 @@ export function Header({ count, onNewChat }: Props) {
         </span>
       </div>
 
-      <button
-        type="button"
-        className="new-chat-btn focusable"
-        onClick={onNewChat}
-        aria-label="Create a new chat"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
-          <path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z" fill="currentColor" />
-        </svg>
-        New Chat
-      </button>
+      <div className="header-right">
+        <div className="hello-user">
+          {user ? `Hello, ${user.username}! 👋` : "Hello! 👋"}
+        </div>
+        <button
+          type="button"
+          className="new-chat-btn focusable"
+          onClick={onNewChat}
+          aria-label="Create a new chat"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+            <path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z" fill="currentColor" />
+          </svg>
+          New Chat
+        </button>
+      </div>
     </header>
   );
 }

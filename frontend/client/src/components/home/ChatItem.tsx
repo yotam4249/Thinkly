@@ -30,6 +30,8 @@ export function ChatItem({ item, onOpen, rightSlot }: Props) {
       <div className="chat-info chat-inline" title={item.lastMessageText || ""}>
         <span className="chat-title ellipsis">{item.title || "(untitled)"}</span>
 
+        <span className="title-separator" aria-hidden></span>
+
         <span className={`badge inline ${isGroup ? "group" : "dm"}`}>
           <img
             src={badgeIcon}
@@ -44,7 +46,11 @@ export function ChatItem({ item, onOpen, rightSlot }: Props) {
         <span className="dot-sep" aria-hidden>•</span>
 
         <span className="chat-preview ellipsis">
-          {item.lastMessageText || "No messages yet"}
+          {item.lastMessageText 
+            ? (item.lastMessageText.length > 20 
+                ? item.lastMessageText.substring(0, 20) + "..." 
+                : item.lastMessageText)
+            : "No messages yet"}
         </span>
       </div>
 

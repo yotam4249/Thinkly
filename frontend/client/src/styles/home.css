@@ -25,6 +25,22 @@
   flex-wrap: nowrap;           /* never wrap */
 }
 
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.hello-user {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text, #111827);
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
 .home-title-wrap {
   display: flex;
   align-items: center;         /* align with circle */
@@ -121,10 +137,24 @@
   line-height: 1.15;
   color: var(--text-strong, #111827);
   text-transform: capitalize;
+  width: 20ch;                           /* fixed width for ~20 characters */
+  max-width: 20ch;
+  min-width: 20ch;
+  flex-shrink: 0;
 }
 .chat-preview {
   font-size: 13px;                       /* smaller last message */
   color: var(--muted, #667085);
+}
+
+/* vertical separator line before badge */
+.title-separator {
+  width: 1px;
+  height: 16px;
+  background-color: color-mix(in oklab, var(--border, #e8eaf3) 80%, black);
+  flex-shrink: 0;
+  margin: 0 4px;
+  align-self: center;
 }
 
 /* dot separator between badge and preview */
