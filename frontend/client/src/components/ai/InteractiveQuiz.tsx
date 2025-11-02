@@ -1,5 +1,8 @@
 import { useState } from "react";
 import type { QuizPayload } from "../../services/ai.services";
+import { saveQuizResult } from "../../services/ai.services";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { setUser, selectAuthUser } from "../../store/slices/authSlice";
 
 type QuizState = "questions" | "score";
 
@@ -10,6 +13,8 @@ export function InteractiveQuiz({
   quiz: QuizPayload;
   onComplete?: (score: number, total: number) => void;
 }) {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector(selectAuthUser);
   const [state, setState] = useState<QuizState>("questions");
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<number[]>(Array(quiz.items.length).fill(-1));
@@ -21,7 +26,7 @@ export function InteractiveQuiz({
     setAnswers(newAnswers);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIdx < quiz.items.length - 1) {
       setCurrentIdx(currentIdx + 1);
     } else {
@@ -32,6 +37,21 @@ export function InteractiveQuiz({
       });
       setScore(correct);
       setState("score");
+      
+      // Save quiz result to backend
+      try {
+        const result = await saveQuizResult(quiz.topic, quiz.level, correct, quiz.items.length);
+        console.log("[Quiz] Quiz result saved successfully");
+        
+        // Update user state with new quiz history if available
+        if (result.quizHistory && user) {
+          dispatch(setUser({ ...user, quizHistory: result.quizHistory }));
+        }
+      } catch (err) {
+        console.error("[Quiz] Failed to save quiz result:", err);
+        // Continue even if save fails - don't block user experience
+      }
+      
       onComplete?.(correct, quiz.items.length);
     }
   };

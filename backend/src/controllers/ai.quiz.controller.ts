@@ -7,6 +7,7 @@ import {
   type QuizItem,
 } from "../services/aiCache.service";
 import { generateOpenAIQuiz, generateOpenAIQuizStrict } from "../services/openai.service";
+import { UserModel } from "../models/user.model";
 
 function isStringArray(arr: any, len: number): arr is string[] {
   return Array.isArray(arr) && arr.length === len && arr.every((x) => typeof x === "string");
@@ -146,6 +147,49 @@ export async function quizGenerate(req: Request, res: Response) {
     return res.json({ cached: false, quiz: parsed });
   } catch (err: any) {
     console.error("[QUIZ] Error:", err?.message || err);
+    return res.status(500).json({ error: "server_error", detail: err?.message || String(err) });
+  }
+}
+
+export async function quizSaveResult(req: Request, res: Response) {
+  try {
+    const userId = (req as any)?.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "UNAUTHORIZED" });
+    }
+
+    const { topic, level, score, total } = req.body;
+
+    if (!topic || !level || typeof score !== "number" || typeof total !== "number") {
+      return res.status(400).json({ error: "Missing required fields: topic, level, score, total" });
+    }
+
+    if (score < 0 || total <= 0 || score > total) {
+      return res.status(400).json({ error: "Invalid score or total values" });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "USER_NOT_FOUND" });
+    }
+
+    // Add quiz result to history
+    user.quizHistory.push({
+      topic: String(topic),
+      level: String(level),
+      score,
+      total,
+      completedAt: new Date(),
+    });
+
+    await user.save();
+
+    return res.json({ 
+      success: true,
+      quizHistory: user.quizHistory 
+    });
+  } catch (err: any) {
+    console.error("[QUIZ] Save result error:", err?.message || err);
     return res.status(500).json({ error: "server_error", detail: err?.message || String(err) });
   }
 }

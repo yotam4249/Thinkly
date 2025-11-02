@@ -54,5 +54,19 @@ async function getCurrentUser(): Promise<User | null> {
   }
 }
 
-const AuthService = { register, login, logout, getCurrentUser };
+async function updateProfile(updates: {
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  profileImage?: string | null;
+}): Promise<User> {
+  const { data } = await api.put<{ user: User }>("/auth/profile", updates);
+  store.dispatch(setUser(data.user));
+  return data.user;
+}
+
+async function updatePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await api.put("/auth/password", { currentPassword, newPassword });
+}
+
+const AuthService = { register, login, logout, getCurrentUser, updateProfile, updatePassword };
 export default AuthService;

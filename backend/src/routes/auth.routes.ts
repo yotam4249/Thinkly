@@ -9,3 +9,5 @@ authRouter.post("/login", AuthController.login);
 authRouter.post("/refresh", AuthController.refresh);
 authRouter.post("/logout", AuthController.logout);
 authRouter.get("/me", authMiddleware, AuthController.me);
+authRouter.put("/profile", authMiddleware, AuthController.updateProfile);
+authRouter.put("/password", authMiddleware, AuthController.updatePassword);

@@ -73,6 +73,7 @@ export class AuthController {
           gender: user.gender,
           profileImage: user.profileImage ?? null, // S3 key
           profileImageUrl, // ephemeral GET URL
+          quizHistory: user.quizHistory ?? [],
         },
         ...tokens,
       });
@@ -111,8 +112,11 @@ export class AuthController {
         user: {
           id: user.id,
           username: user.username,
+          dateOfBirth: user.dateOfBirth,
+          gender: user.gender,
           profileImage: user.profileImage ?? null,
           profileImageUrl,
+          quizHistory: user.quizHistory ?? [],
         },
         ...tokens,
       });
@@ -171,7 +175,7 @@ export class AuthController {
     const userId = (req as any)?.user?.id;
     if (!userId) return res.status(401).json({ code: "UNAUTHORIZED" });
 
-    const user = await UserModel.findById(userId).select("_id username profileImage");
+    const user = await UserModel.findById(userId).select("_id username profileImage dateOfBirth gender quizHistory");
     if (!user) return res.status(404).json({ code: "NOT_FOUND" });
 
     const profileImageUrl = user.profileImage
@@ -182,9 +186,114 @@ export class AuthController {
       user: {
         id: user.id,
         username: user.username,
+        dateOfBirth: user.dateOfBirth,
+        gender: user.gender,
         profileImage: user.profileImage ?? null,
         profileImageUrl,
+        quizHistory: user.quizHistory ?? [],
       },
     });
+  }
+
+  static async updateProfile(req: Request, res: Response) {
+    try {
+      const userId = (req as any)?.user?.id;
+      if (!userId) return res.status(401).json({ code: "UNAUTHORIZED" });
+
+      const { dateOfBirth, gender, profileImage } = req.body ?? {};
+
+      const user = await UserModel.findById(userId);
+      if (!user) return res.status(404).json({ code: "NOT_FOUND" });
+
+      // Validate gender if provided
+      const allowedGenders = ["male", "female", "other", "prefer_not_to_say"];
+      if (gender !== undefined && gender !== null && !allowedGenders.includes(gender)) {
+        return res.status(400).json({ code: "INVALID_GENDER" });
+      }
+
+      // Validate and update date of birth if provided
+      if (dateOfBirth !== undefined) {
+        if (dateOfBirth === null || dateOfBirth === "") {
+          user.dateOfBirth = undefined;
+        } else {
+          const parsed = new Date(dateOfBirth);
+          if (isNaN(parsed.getTime())) {
+            return res.status(400).json({ code: "INVALID_DATE_OF_BIRTH" });
+          }
+          const age = Math.floor(
+            (Date.now() - parsed.getTime()) / (365.25 * 24 * 3600 * 1000)
+          );
+          if (age < 16) return res.status(400).json({ code: "AGE_TOO_YOUNG" });
+          user.dateOfBirth = parsed;
+        }
+      }
+
+      // Update gender if provided
+      if (gender !== undefined) {
+        user.gender = gender || undefined;
+      }
+
+      // Update profile image if provided
+      if (profileImage !== undefined) {
+        user.profileImage = profileImage || null;
+      }
+
+      await user.save();
+
+      const profileImageUrl = user.profileImage
+        ? await getPresignedGetUrl(user.profileImage)
+        : null;
+
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          dateOfBirth: user.dateOfBirth,
+          gender: user.gender,
+          profileImage: user.profileImage ?? null,
+          profileImageUrl,
+          quizHistory: user.quizHistory ?? [],
+        },
+      });
+    } catch (err) {
+      console.error("updateProfile error:", err);
+      return res.status(500).json({ code: "SERVER_ERROR" });
+    }
+  }
+
+  static async updatePassword(req: Request, res: Response) {
+    try {
+      const userId = (req as any)?.user?.id;
+      if (!userId) return res.status(401).json({ code: "UNAUTHORIZED" });
+
+      const { currentPassword, newPassword } = req.body ?? {};
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ code: "BAD REQUEST", message: "Current password and new password required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ code: "PASSWORD_TOO_SHORT" });
+      }
+
+      const user = await UserModel.findById(userId);
+      if (!user) return res.status(404).json({ code: "NOT_FOUND" });
+
+      // Verify current password
+      const isValidPassword = await comparePassword(currentPassword, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ code: "INVALID_PASSWORD" });
+      }
+
+      // Update password
+      const hashed = await hashPassword(newPassword);
+      user.password = hashed;
+      await user.save();
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("updatePassword error:", err);
+      return res.status(500).json({ code: "SERVER_ERROR" });
+    }
   }
 }

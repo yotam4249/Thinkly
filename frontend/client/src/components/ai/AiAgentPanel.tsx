@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from "react";
-import { askQuestion, getQuiz, type QuizPayload } from "../../services/ai.services";
-import { useAppSelector } from "../../store/hooks";
-import { selectAuthUser } from "../../store/slices/authSlice";
+import { askQuestion, getQuiz, saveQuizResult, type QuizPayload } from "../../services/ai.services";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { selectAuthUser, setUser } from "../../store/slices/authSlice";
 import { createQuizPreviewMessage } from "../../utils/quiz.utils";
 import "../../styles/ai.css";
 
@@ -21,6 +21,8 @@ export function AiAgentPanel({
   chatId?: string;
   onShareQuiz?: (quizText: string) => void;
 } = {}) {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector(selectAuthUser);
   const [messages, setMessages] = useState<Msg[]>([
     { id: "sys", role: "system", content: "You are a friendly AI tutor." },
     { id: "greet", role: "assistant", content: "How can I help you today?" },
@@ -39,7 +41,6 @@ export function AiAgentPanel({
   const [answers, setAnswers] = useState<number[]>([]);
   const [hasSharedQuiz, setHasSharedQuiz] = useState(false);
 
-  const user = useAppSelector(selectAuthUser);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll for normal chat
@@ -179,12 +180,27 @@ export function AiAgentPanel({
     ]);
   };
 
-  const finishQuiz = () => {
+  const finishQuiz = async () => {
     if (!quiz) return;
     let correct = 0;
     quiz.items.forEach((q, i) => {
       if (answers[i] === q.correctIndex) correct++;
     });
+    
+    // Save quiz result to backend
+    try {
+      const result = await saveQuizResult(quiz.topic, quiz.level, correct, quiz.items.length);
+      console.log("[AI] Quiz result saved successfully");
+      
+      // Update user state with new quiz history if available
+      if (result.quizHistory && user) {
+        dispatch(setUser({ ...user, quizHistory: result.quizHistory }));
+      }
+    } catch (err) {
+      console.error("[AI] Failed to save quiz result:", err);
+      // Continue even if save fails - don't block user experience
+    }
+    
     setQuizMode(false);
     setMessages((p) => [
       ...p,

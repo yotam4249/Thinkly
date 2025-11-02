@@ -61,3 +61,28 @@ export async function getQuiz(
     throw err;
   }
 }
+
+/**
+ * Save quiz result to user's quiz history
+ */
+export async function saveQuizResult(
+  topic: string,
+  level: string,
+  score: number,
+  total: number
+): Promise<{ success: boolean; quizHistory?: any[] }> {
+  console.log("[FE][AI] saveQuizResult →", { topic, level, score, total });
+
+  try {
+    const { data } = await api.post<{ success: boolean; quizHistory?: any[] }>(
+      "/ai/quiz/result",
+      { topic, level, score, total }
+    );
+
+    console.log("[FE][AI] saveQuizResult response:", data);
+    return data;
+  } catch (err: any) {
+    console.error("[FE][AI] saveQuizResult error:", err?.response || err);
+    throw err;
+  }
+}
