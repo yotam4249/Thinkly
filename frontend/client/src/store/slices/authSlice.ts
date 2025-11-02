@@ -2,7 +2,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { AuthState } from "../../types/store.type";
 import type { User } from "../../types/user.type";
-import { loginThunk, logoutThunk, registerThunk } from "../thunks/authThunk";
+import { loginThunk, logoutThunk, registerThunk, getCurrentUserThunk } from "../thunks/authThunk";
 
 const initialState: AuthState = {
   user: null,
@@ -62,6 +62,20 @@ const authSlice = createSlice({
         state.status = "failed";
         state.user = null;
         state.error = action.payload ?? "LOGOUT_FAILED";
+      })
+      // GET CURRENT USER
+      .addCase(getCurrentUserThunk.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(getCurrentUserThunk.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user = action.payload;
+      })
+      .addCase(getCurrentUserThunk.rejected, (state, action) => {
+        state.status = "failed";
+        state.user = null;
+        state.error = action.payload ?? "FAILED_TO_GET_USER";
       });
   },
 });

@@ -1,7 +1,6 @@
 // const AuthService = { register, login, logout };
 // export default AuthService;
 // src/services/auth.service.ts
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import api, { TokenManager } from "./api";
 import type { Gender, User } from "../types/user.type";
 import { store } from "../store/store";
@@ -45,5 +44,15 @@ async function logout(): Promise<void> {
   }
 }
 
-const AuthService = { register, login, logout };
+async function getCurrentUser(): Promise<User | null> {
+  try {
+    const { data } = await api.get<{ user: User }>("/auth/me");
+    return data.user;
+  } catch {
+    // If not authenticated, return null (thunk will handle state update)
+    return null;
+  }
+}
+
+const AuthService = { register, login, logout, getCurrentUser };
 export default AuthService;

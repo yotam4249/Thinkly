@@ -1,4 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { useEffect } from "react";
+import { useAppDispatch } from "./store/hooks";
+import { getCurrentUserThunk } from "./store/thunks/authThunk";
+import { TokenManager } from "./services/api";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import ChatPage from "./pages/ChatPage";
@@ -10,17 +14,33 @@ function ChatRoute() {
   return <ChatPage chatId={id} />;
 }
 
+function AppRoutes() {
+  const dispatch = useAppDispatch();
+
+  // Restore user from token on app load
+  useEffect(() => {
+    // Only try to restore if we have a token
+    if (TokenManager.access) {
+      dispatch(getCurrentUserThunk());
+    }
+  }, [dispatch]);
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<Login/>} />
+      <Route path="/register" element={<Register/>} />
+      <Route path="/chat/:id" element={<ChatRoute/>} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="/home" element={<Home />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<Login/>} />
-        <Route path="/register" element={<Register/>} />
-        <Route path="/chat/:id" element={<ChatRoute/>} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-        <Route path="/home" element={<Home />} />
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

@@ -53,11 +53,11 @@
 }
 
 .dm-dock.closed {
-  width: 36px;
-  min-width: 36px;
+  width: 48px;
+  min-width: 48px;
 
   /* CLOSED state visuals */
-  transform: translateX(-12px);
+  transform: translateX(-20px);
   opacity: 0.96;
   box-shadow: 
     2px 0 20px rgba(0,0,0,0.08),
@@ -69,12 +69,12 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  right: -14px;
+  right: -10px;
 
-  width: 32px;
-  height: 32px;
-  border-radius: 16px;
-  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  border: 1.5px solid color-mix(in oklab, var(--border) 60%, transparent);
   background: color-mix(in oklab, var(--surface) 98%, transparent);
   color: var(--text);
   cursor: pointer;
@@ -88,11 +88,17 @@
   transition:
     transform 320ms var(--dm-ease),
     box-shadow 280ms ease,
-    background 180ms ease;
+    background 180ms ease,
+    width 280ms var(--dm-ease),
+    height 280ms var(--dm-ease);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 24px;
+  line-height: 1;
   display: grid;
-  place-items: center;
+  align-items: start;
+  justify-items: center;
+  padding-top: 6px;
+  padding-bottom: 0;
 }
 .dm-dock-toggle:hover {
   box-shadow: 
@@ -543,7 +549,7 @@
     width: 240px;
   }
   .dm-dock.closed {
-    width: 32px;
+    width: 42px;
   }
   .dm-window {
     width: 280px;
@@ -556,7 +562,7 @@
     width: 220px;
   }
   .dm-dock.closed {
-    width: 30px;
+    width: 40px;
   }
 
   /* tiny nudge on very small screens (avoid system overlays) */

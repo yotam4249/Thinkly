@@ -52,3 +52,20 @@ export const logoutThunk = createAsyncThunk<void, void, { rejectValue: string }>
       }
     }
   );
+
+export const getCurrentUserThunk = createAsyncThunk<
+    User | null,
+    void,
+    { rejectValue: string }
+>(
+    'auth/getCurrentUser',
+    async (_, { rejectWithValue }) => {
+        try {
+            const user = await AuthService.getCurrentUser();
+            return user;
+        } catch (err: any) {
+            const code = err?.response?.data?.code ?? 'FAILED_TO_GET_USER';
+            return rejectWithValue(code);
+        }
+    }
+);

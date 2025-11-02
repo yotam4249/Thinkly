@@ -120,6 +120,7 @@
   font-size: 16.5px;                     /* bigger title */
   line-height: 1.15;
   color: var(--text-strong, #111827);
+  text-transform: capitalize;
 }
 .chat-preview {
   font-size: 13px;                       /* smaller last message */

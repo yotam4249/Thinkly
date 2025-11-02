@@ -29,8 +29,10 @@ import { DmDock } from "../components/dm/DmDock";
 import { DmWindows } from "../components/dm/DmWindows";
 
 import "../styles/home.css";
-import { useAppSelector } from "../store/hooks";
+import { useAppSelector, useAppDispatch } from "../store/hooks";
 import { selectAuthUser } from "../store/slices/authSlice";
+import { getCurrentUserThunk } from "../store/thunks/authThunk";
+import { TokenManager } from "../services/api";
 
 function fmt(iso?: string) {
   return iso ? new Date(iso).toLocaleString() : "";
@@ -63,7 +65,15 @@ export default function Home() {
   // joining state
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
-  const user = useAppSelector(selectAuthUser)
+  const user = useAppSelector(selectAuthUser);
+  const dispatch = useAppDispatch();
+
+  // Restore user if missing but token exists
+  useEffect(() => {
+    if (!user && TokenManager.access) {
+      dispatch(getCurrentUserThunk());
+    }
+  }, [user, dispatch]);
 
   // load page
   const load = async (p: number) => {
