@@ -193,6 +193,7 @@ export class ChatController {
           senderId,
           type: m.type,
           text: m.text,
+          imageUrls: m.imageUrls || [],
           createdAt: toIso(m.createdAt),
           senderName,
         };

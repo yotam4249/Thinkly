@@ -1,6 +1,6 @@
 import { Schema, model, Types, Model } from "mongoose";
 
-export type MessageType = "text" | "ai";
+export type MessageType = "text" | "ai" | "image";
 
 export interface IMessage {
   _id: Types.ObjectId;
@@ -8,6 +8,7 @@ export interface IMessage {
   senderId: Types.ObjectId;
   type: MessageType;
   text?: string;
+  imageUrls?: string[]; // S3 keys for images
   createdAt: Date;
 }
 
@@ -15,8 +16,9 @@ const MessageSchema = new Schema<IMessage>(
   {
     chatId:   { type: Schema.Types.ObjectId, ref: "Chat", required: true, index: true },
     senderId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    type:     { type: String, enum: ["text", "ai"], required: true },
+    type:     { type: String, enum: ["text", "ai", "image"], required: true },
     text:     { type: String },
+    imageUrls: { type: [String], default: [] },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

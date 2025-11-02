@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ChatMessage } from "../../types/chat.type";
 import { isQuizPreviewMessage, parseQuizPreviewMessage } from "../../utils/quiz.utils";
 import { InteractiveQuiz } from "../ai/InteractiveQuiz";
+import { presignGet } from "../../services/s3.service";
 
 const fmtTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
@@ -21,6 +22,21 @@ export function MessageRow({
   const m = msg as MsgWithName;
   const mine = m.senderId === meId;
   const [quizExpanded, setQuizExpanded] = useState(false);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+
+  // Fetch presigned URLs for images
+  useEffect(() => {
+    if (m.imageUrls && m.imageUrls.length > 0) {
+      Promise.all(m.imageUrls.map((key) => presignGet(key)))
+        .then((urls) => setImageUrls(urls))
+        .catch((err) => {
+          console.error("Failed to load image URLs:", err);
+          setImageUrls([]);
+        });
+    } else {
+      setImageUrls([]);
+    }
+  }, [m.imageUrls]);
 
   // Prefer username if provided; otherwise fall back to short id.
   // For own messages, show your username if present; else "You".
@@ -31,9 +47,9 @@ export function MessageRow({
   const timeStr = fmtTime(m.createdAt);
   const isPending = m.pending;
 
-  // Check if this is a quiz preview message
-  const isQuizPreview = isQuizPreviewMessage(m.text);
-  const quizData = isQuizPreview ? parseQuizPreviewMessage(m.text) : null;
+  // Check if this is a quiz preview message (only if text exists)
+  const isQuizPreview = m.text ? isQuizPreviewMessage(m.text) : false;
+  const quizData = isQuizPreview && m.text ? parseQuizPreviewMessage(m.text) : null;
 
   const handleQuizYes = () => {
     if (!quizData) return;
@@ -84,7 +100,22 @@ export function MessageRow({
             <InteractiveQuiz quiz={quizData.quiz} />
           </div>
         ) : (
-          <div className="bubble-content">{m.text}</div>
+          <div className="bubble-content">
+            {imageUrls.length > 0 && (
+              <div className="message-images">
+                {imageUrls.map((url, idx) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt={`Image ${idx + 1}`}
+                    className="message-image"
+                    loading="lazy"
+                  />
+                ))}
+              </div>
+            )}
+            {m.text && <div className="message-text">{m.text}</div>}
+          </div>
         )}
       </div>
       <footer className="meta" aria-label="Message metadata">

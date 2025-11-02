@@ -88,7 +88,9 @@ export default function ChatPage({ chatId }: { chatId: string }) {
             _id: String(m._id),
             chatId: String(m.chatId),
             senderId: String(m.senderId),
-            text: String(m.text ?? ""),
+            type: m.type || "text",
+            text: m.text ? String(m.text) : undefined,
+            imageUrls: m.imageUrls || undefined,
             createdAt:
               typeof m.createdAt === "string"
                 ? m.createdAt
@@ -124,7 +126,9 @@ export default function ChatPage({ chatId }: { chatId: string }) {
         _id: String(raw._id),
         chatId: String(raw.chatId),
         senderId: String(raw.senderId),
-        text: String(raw.text ?? ""),
+        type: raw.type || "text",
+        text: raw.text ? String(raw.text) : undefined,
+        imageUrls: raw.imageUrls || undefined,
         createdAt:
           typeof raw.createdAt === "string"
             ? raw.createdAt
@@ -144,6 +148,7 @@ export default function ChatPage({ chatId }: { chatId: string }) {
             x.pending &&
             x.senderId === meId &&
             x.text === m.text &&
+            JSON.stringify(x.imageUrls || []) === JSON.stringify(m.imageUrls || []) &&
             Math.abs(echoedAt - new Date(x.createdAt ?? Date.now()).getTime()) < 60_000
         );
 
@@ -174,17 +179,23 @@ export default function ChatPage({ chatId }: { chatId: string }) {
     };
   }, [chatId, meId, nameById]);
 
-  const send = (text: string) => {
-    const clean = (text ?? "").trim();
-    if (!clean) return;
+  const send = (text: string, imageUrls?: string[]) => {
+    const clean = text ? text.trim() : "";
+    const images = imageUrls || [];
+    
+    // Must have either text or images
+    if (!clean && images.length === 0) return;
 
     const clientId = uuid();
+    const msgType = images.length > 0 ? (clean ? "text" : "image") : "text";
     const optimistic: MsgWithName = {
       _id: clientId,
       clientId,
       chatId,
       senderId: meId,
-      text: clean,
+      type: msgType,
+      text: clean || undefined,
+      imageUrls: images.length > 0 ? images : undefined,
       createdAt: new Date().toISOString(),
       pending: true,
       senderName: nameById[meId] ?? "You",
@@ -204,7 +215,13 @@ export default function ChatPage({ chatId }: { chatId: string }) {
 
     getSocket().emit(
       "message:send",
-      { chatId, text: clean, clientId },
+      { 
+        chatId, 
+        text: clean || undefined, 
+        imageUrls: images.length > 0 ? images : undefined,
+        type: msgType,
+        clientId 
+      },
       (_ack?: { ok: boolean }) => {
         if (sendTimerRef.current) {
           window.clearTimeout(sendTimerRef.current);

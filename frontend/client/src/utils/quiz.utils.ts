@@ -33,20 +33,20 @@ export function createQuizPreviewMessage(username: string, quiz: QuizPayload): s
 /**
  * Check if a message is a quiz preview
  */
-export function isQuizPreviewMessage(text: string): boolean {
-  return text.startsWith("[QUIZ_PREVIEW]");
+export function isQuizPreviewMessage(text?: string | null): boolean {
+  return text ? text.startsWith("[QUIZ_PREVIEW]") : false;
 }
 
 /**
  * Parse quiz preview message and extract data
  */
-export function parseQuizPreviewMessage(text: string): {
+export function parseQuizPreviewMessage(text?: string | null): {
   quiz: QuizPayload;
   sharedBy: string;
   topic: string;
   level: string;
 } | null {
-  if (!isQuizPreviewMessage(text)) return null;
+  if (!text || !isQuizPreviewMessage(text)) return null;
   
   try {
     const content = text.replace("[QUIZ_PREVIEW]", "");

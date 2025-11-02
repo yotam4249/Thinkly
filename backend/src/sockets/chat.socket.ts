@@ -27,26 +27,38 @@ export function registerChatSocket(io: Server) {
     });
 
     // send message
-    socket.on("message:send", async ({ chatId, text }: { chatId: string; text: string }) => {
-      const clean = (text ?? "").trim();
-      if (!clean) return;
+    socket.on("message:send", async ({ chatId, text, imageUrls, type }: { 
+      chatId: string; 
+      text?: string; 
+      imageUrls?: string[]; 
+      type?: "text" | "image"; 
+    }) => {
+      const clean = text ? (text ?? "").trim() : "";
+      const images = imageUrls && Array.isArray(imageUrls) ? imageUrls.filter(Boolean) : [];
+      
+      // Must have either text or images
+      if (!clean && images.length === 0) return;
 
       const chat = await ChatModel.findById(chatId).select("_id members");
       if (!chat) return;
       if (!chat.members.some((m) => String(m) === user.id)) return;
 
+      const msgType = type || (images.length > 0 ? "image" : "text");
+      const lastMessageText = clean || (images.length > 0 ? `${images.length} image${images.length > 1 ? "s" : ""}` : "");
+
       const msg = await MessageModel.create({
         chatId,
         senderId: user.id,
-        type: "text",
-        text: clean,
+        type: msgType,
+        text: clean || undefined,
+        imageUrls: images.length > 0 ? images : undefined,
       });
 
       // update chat denormalized fields
       await ChatModel.updateOne(
         { _id: chatId },
         {
-          $set: { lastMessageText: clean, lastMessageAt: msg.createdAt },
+          $set: { lastMessageText, lastMessageAt: msg.createdAt },
           $inc: { messageCount: 1 },
         }
       );
@@ -56,8 +68,9 @@ export function registerChatSocket(io: Server) {
         _id: String(msg._id),
         chatId,
         senderId: user.id,
-        type: "text",
-        text: clean,
+        type: msgType,
+        text: clean || undefined,
+        imageUrls: images.length > 0 ? images : undefined,
         createdAt: msg.createdAt,
       });
 

@@ -2,7 +2,9 @@ export type ChatMessage = {
     _id: string;
     chatId: string;
     senderId: string;
-    text: string;
+    type?: "text" | "image" | "ai";
+    text?: string;
+    imageUrls?: string[]; // S3 keys for images
     createdAt?: string;
   
     // client-side helpers
