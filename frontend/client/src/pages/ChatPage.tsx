@@ -2,13 +2,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { getMessages, getChatMeta } from "../services/chat.service";
+import { getMessages, getChatMeta, listChats } from "../services/chat.service";
 import { getSocket } from "../services/socket.service";
 import { TokenManager } from "../services/api";
 import { ChatHeader } from "../components/chat/ChatHeader";
 import { MessageList } from "../components/chat/MessageList";
 import { Composer } from "../components/chat/Composer";
+import { AiAgentPanel } from "../components/ai/AiAgentPanel";
+import { DmWindowsProvider } from "../components/dm/DmWindowsProvider";
+import { DmDock } from "../components/dm/DmDock";
+import { DmWindows } from "../components/dm/DmWindows";
 import type { ChatMessage } from "../types/chat.type";
+import type { ChatListItem } from "../types/chatList.type";
 import "../styles/chat.css";
 
 function decodeUserIdFromJWT(jwt?: string | null): string | null {
@@ -27,8 +32,6 @@ function uuid() {
 }
 
 type RouteState = { title?: string } | null;
-
-// UI-only extension to include the display name
 type MsgWithName = ChatMessage & { senderName?: string };
 
 export default function ChatPage({ chatId }: { chatId: string }) {
@@ -40,23 +43,26 @@ export default function ChatPage({ chatId }: { chatId: string }) {
   const [messages, setMessages] = useState<MsgWithName[]>([]);
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState(chatTitleFromNav);
-  const [nameById, setNameById] = useState<Record<string, string>>({}); // { userId -> displayName }
+  const [nameById, setNameById] = useState<Record<string, string>>({});
 
-  // mutable helpers
+  // DM data for dock
+  const [dms, setDms] = useState<ChatListItem[]>([]);
+  const [dmsLoading, setDmsLoading] = useState(false);
+
   const seenIdsRef = useRef<Set<string>>(new Set());
   const msgsRef = useRef<MsgWithName[]>([]);
   msgsRef.current = messages;
 
-  // Helper: extract a nice display name from chat meta member row
+  const sendTimerRef = useRef<number | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
   const pickDisplayName = (u: any, fallbackId: string) =>
     u?.fullName || u?.username || u?.name || u?.email || fallbackId.slice(0, 6);
 
-  // Load chat meta (title + members) and first page of messages
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      // 1) fetch chat meta (members w/ usernames)
       try {
         const meta = await getChatMeta(chatId);
         if (cancelled) return;
@@ -64,23 +70,19 @@ export default function ChatPage({ chatId }: { chatId: string }) {
 
         const map: Record<string, string> = {};
         for (const m of meta.members || []) {
-          if (m?._id) {
-            map[m._id] = pickDisplayName(m, m._id);
-          }
+          if (m?._id) map[m._id] = pickDisplayName(m, m._id);
         }
         setNameById(map);
       } catch {
-        // if meta fails, keep whatever we had from nav
+        // ignore
       }
 
-      // 2) fetch messages
       try {
         const data = await getMessages(chatId);
         if (cancelled) return;
 
         data.items.forEach((m: any) => m._id && seenIdsRef.current.add(String(m._id)));
 
-        // prefer server-provided senderName; else fall back to nameById
         setMessages(
           data.items.map((m: any) => ({
             _id: String(m._id),
@@ -103,11 +105,9 @@ export default function ChatPage({ chatId }: { chatId: string }) {
     return () => {
       cancelled = true;
     };
-    // We want to run once per chatId; nameById will be set inside
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId]);
 
-  // When nameById arrives/changes (from chat meta), patch messages missing senderName
   useEffect(() => {
     if (!Object.keys(nameById).length || !messages.length) return;
     setMessages((prev) =>
@@ -120,7 +120,6 @@ export default function ChatPage({ chatId }: { chatId: string }) {
     socket.emit("chat:join", { chatId });
 
     const onNew = (raw: any) => {
-      // normalize; prefer raw.senderName from server if present
       const m: MsgWithName = {
         _id: String(raw._id),
         chatId: String(raw.chatId),
@@ -138,7 +137,6 @@ export default function ChatPage({ chatId }: { chatId: string }) {
       if (m._id && seenIdsRef.current.has(m._id)) return;
 
       setMessages((prev) => {
-        // replace my optimistic bubble heuristically (same sender+text, 60s)
         const echoedAt = new Date(m.createdAt ?? Date.now()).getTime();
         const rev = [...prev].reverse();
         const jRev = rev.findIndex(
@@ -148,11 +146,17 @@ export default function ChatPage({ chatId }: { chatId: string }) {
             x.text === m.text &&
             Math.abs(echoedAt - new Date(x.createdAt ?? Date.now()).getTime()) < 60_000
         );
+
         if (jRev !== -1) {
           const j = prev.length - 1 - jRev;
           const next = prev.slice();
           next[j] = { ...m, pending: false };
           if (m._id) seenIdsRef.current.add(m._id);
+          if (sendTimerRef.current) {
+            window.clearTimeout(sendTimerRef.current);
+            sendTimerRef.current = null;
+          }
+          setSending(false);
           return next;
         }
 
@@ -176,34 +180,105 @@ export default function ChatPage({ chatId }: { chatId: string }) {
 
     const clientId = uuid();
     const optimistic: MsgWithName = {
-      _id: clientId, // local key only
+      _id: clientId,
       clientId,
       chatId,
       senderId: meId,
       text: clean,
       createdAt: new Date().toISOString(),
       pending: true,
-      // show my name immediately if we have it from chat meta map
       senderName: nameById[meId] ?? "You",
     };
 
     setSending(true);
     setMessages((prev) => prev.concat(optimistic));
 
+    if (sendTimerRef.current) {
+      window.clearTimeout(sendTimerRef.current);
+      sendTimerRef.current = null;
+    }
+    sendTimerRef.current = window.setTimeout(() => {
+      setSending(false);
+      sendTimerRef.current = null;
+    }, 4000);
+
     getSocket().emit(
       "message:send",
       { chatId, text: clean, clientId },
-      (_ack?: { ok: boolean }) => setSending(false)
+      (_ack?: { ok: boolean }) => {
+        if (sendTimerRef.current) {
+          window.clearTimeout(sendTimerRef.current);
+          sendTimerRef.current = null;
+        }
+        setSending(false);
+      }
     );
   };
 
+  useEffect(() => {
+    return () => {
+      if (sendTimerRef.current) {
+        window.clearTimeout(sendTimerRef.current);
+        sendTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages.length]);
+
+  // Fetch DMs for dock
+  useEffect(() => {
+    let cancelled = false;
+    setDmsLoading(true);
+    
+    (async () => {
+      try {
+        const res = await listChats(1, 100); // Get enough to cover all DMs
+        if (cancelled) return;
+        const dmList = res.items.filter((x) => x.type === "dm" && x.isMember !== false);
+        setDms(dmList);
+      } catch {
+        if (!cancelled) setDms([]);
+      } finally {
+        if (!cancelled) setDmsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <div className="chat-shell">
-      <div className="chat-card">
-        <ChatHeader chatId={chatId} title={title} />
-        <MessageList messages={messages} meId={meId} />
-        <Composer disabled={sending} onSend={send} />
+    <DmWindowsProvider>
+      <div className="chat-shell">
+        <div className="chat-card">
+          {/* LEFT COLUMN */}
+          <div className="chat-header">
+            <ChatHeader chatId={chatId} title={title} />
+          </div>
+
+          <div className="messages">
+            <MessageList messages={messages} meId={meId} />
+            <div ref={bottomRef} aria-hidden="true" />
+          </div>
+
+          <div className="composer">
+            <Composer disabled={sending} onSend={send} />
+          </div>
+
+          {/* RIGHT COLUMN (AI sidebar) */}
+          <aside className="chat-aside">
+            <AiAgentPanel />
+          </aside>
+        </div>
       </div>
-    </div>
+
+      {/* DM Dock and Windows */}
+      <DmDock dms={dms} loading={dmsLoading} />
+      <DmWindows />
+    </DmWindowsProvider>
   );
 }
