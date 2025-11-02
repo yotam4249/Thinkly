@@ -316,7 +316,6 @@
 /* ===================== Enhanced Primary Button ===================== */
 .auth-screen .btn-primary {
   position: relative;
-  overflow: hidden;
   background: var(--brand-gradient);
   box-shadow: 
     0 10px 24px color-mix(in oklab, var(--brand) 35%, transparent),
@@ -324,26 +323,6 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.auth-screen .btn-primary::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  transition: left 0.5s ease;
-}
-
-.auth-screen .btn-primary:hover:not(:disabled)::before {
-  left: 100%;
 }
 
 .auth-screen .btn-primary:hover:not(:disabled) {
@@ -366,25 +345,6 @@
   opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-/* Loading state for button */
-.auth-screen .btn-primary:disabled::after {
-  content: "";
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: buttonSpin 0.8s linear infinite;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-@keyframes buttonSpin {
-  to { transform: translateY(-50%) rotate(360deg); }
 }
 
 /* ===================== Enhanced Ghost Button ===================== */
