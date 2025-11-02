@@ -22,6 +22,7 @@ export function MessageRow({
   const m = msg as MsgWithName;
   const mine = m.senderId === meId;
   const [quizExpanded, setQuizExpanded] = useState(false);
+  const [quizDeclined, setQuizDeclined] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   // Fetch presigned URLs for images
@@ -51,6 +52,12 @@ export function MessageRow({
   const isQuizPreview = m.text ? isQuizPreviewMessage(m.text) : false;
   const quizData = isQuizPreview && m.text ? parseQuizPreviewMessage(m.text) : null;
 
+  // If the sender is viewing their own quiz, show it directly (no preview)
+  const shouldShowQuizDirectly = mine && isQuizPreview && quizData;
+  
+  // Show preview only if: it's a quiz preview, not declined, not expanded, and not sent by current user
+  const shouldShowPreview = isQuizPreview && quizData && !quizDeclined && !quizExpanded && !mine;
+
   const handleQuizYes = () => {
     if (!quizData) return;
     // Show interactive quiz
@@ -58,7 +65,8 @@ export function MessageRow({
   };
 
   const handleQuizNo = () => {
-    // Do nothing as per requirements
+    // Mark as declined to show refusal message
+    setQuizDeclined(true);
   };
 
   return (
@@ -71,7 +79,7 @@ export function MessageRow({
         className={`bubble ${mine ? "bubble-me" : "bubble-other"}`}
         aria-label={isPending ? "Sending message" : undefined}
       >
-        {isQuizPreview && quizData && !quizExpanded ? (
+        {shouldShowPreview ? (
           <div className="quiz-preview">
             <div className="quiz-preview-text">
               <strong>{quizData.sharedBy}</strong> shared a quiz at topic <strong>"{quizData.topic}"</strong>. Would you like to take it?
@@ -95,9 +103,15 @@ export function MessageRow({
               </button>
             </div>
           </div>
-        ) : isQuizPreview && quizExpanded && quizData ? (
+        ) : quizDeclined && quizData ? (
+          <div className="quiz-declined">
+            <div className="quiz-declined-text">
+              You declined the quiz <strong>"{quizData.topic}"</strong> shared by <strong>{quizData.sharedBy}</strong>.
+            </div>
+          </div>
+        ) : (shouldShowQuizDirectly || (isQuizPreview && quizExpanded && quizData)) ? (
           <div className="quiz-interactive-wrapper">
-            <InteractiveQuiz quiz={quizData.quiz} />
+            <InteractiveQuiz quiz={quizData!.quiz} />
           </div>
         ) : (
           <div className="bubble-content">
