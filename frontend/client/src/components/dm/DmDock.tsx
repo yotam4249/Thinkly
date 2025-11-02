@@ -19,6 +19,7 @@ type Props = {
   dms: ChatListItem[];
   loading?: boolean;
   className?: string;
+  onNewDm?: () => void;
 };
 
 function decodeUserIdFromJWT(jwt?: string | null): string | null {
@@ -46,7 +47,7 @@ const genderFallback = (gender?: Gender | null) => {
   return neutralAvatar;
 };
 
-export function DmDock({ dms, loading, className }: Props) {
+export function DmDock({ dms, loading, className, onNewDm }: Props) {
   const { openWindow } = useDmWindows();
 
   const [open, setOpen] = useState(false);
@@ -291,7 +292,19 @@ export function DmDock({ dms, loading, className }: Props) {
       {open && (
         <>
           <div className="dm-dock-header">
-            <h3>Direct Messages</h3>
+            <div className="dm-dock-header-title-row">
+              <h3>Direct Messages</h3>
+              {onNewDm && (
+                <button
+                  className="dm-add-button"
+                  onClick={onNewDm}
+                  title="New DM"
+                  aria-label="Create new direct message"
+                >
+                  +
+                </button>
+              )}
+            </div>
             <input
               className="dm-search"
               placeholder="Search DM…"

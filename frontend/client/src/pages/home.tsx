@@ -28,6 +28,8 @@ import { AiAgentPanel } from "../components/ai/AiAgentPanel";
 import { DmWindowsProvider } from "../components/dm/DmWindowsProvider";
 import { DmDock } from "../components/dm/DmDock";
 import { DmWindows } from "../components/dm/DmWindows";
+import { NewDmModal } from "../components/dm/NewDmModal";
+import { useDmWindows } from "../components/dm/DmWindowsProvider";
 
 import "../styles/home.css";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
@@ -39,8 +41,9 @@ function fmt(iso?: string) {
   return iso ? new Date(iso).toLocaleString() : "";
 }
 
-export default function Home() {
+function HomeContent() {
   const navigate = useNavigate();
+  const { openWindow } = useDmWindows();
 
   // data
   const [items, setItems] = useState<ChatListItem[]>([]);
@@ -59,9 +62,14 @@ export default function Home() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newType, setNewType] = useState<"dm" | "group">("group");
   const [newMembers, setNewMembers] = useState("");
   const [createErr, setCreateErr] = useState<string | null>(null);
+
+  // new DM modal
+  const [showNewDm, setShowNewDm] = useState(false);
+  const [creatingDm, setCreatingDm] = useState(false);
+  const [newDmUsername, setNewDmUsername] = useState("");
+  const [dmError, setDmError] = useState<string | null>(null);
 
   // joining state
   const [joiningId, setJoiningId] = useState<string | null>(null);
@@ -128,60 +136,38 @@ export default function Home() {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (newType === "group") {
-      if (!newTitle.trim()) {
-        setCreateErr("TITLE_REQUIRED");
-        return;
-      }
-    } else {
-      if (tokens.length !== 1) {
-        setCreateErr("DM_MUST_HAVE_EXACTLY_ONE_USERNAME");
-        return;
-      }
+    if (!newTitle.trim()) {
+      setCreateErr("TITLE_REQUIRED");
+      return;
     }
 
     setCreating(true);
     setCreateErr(null);
     try {
-      if (newType === "group") {
-        const title = newTitle.trim();
-        const created = await createGroupChat(title, tokens);
-        const chatId = (created as any).id ?? (created as any).chatId;
-        const reused = Boolean((created as any).reused);
+      const title = newTitle.trim();
+      const created = await createGroupChat(title, tokens);
+      const chatId = (created as any).id ?? (created as any).chatId;
+      const reused = Boolean((created as any).reused);
 
-        const computedTitle = title || "(untitled)";
-        if (!reused) {
-          setItems((prev) => [
-            {
-              id: chatId,
-              type: "group",
-              title: computedTitle,
-              lastMessageText: "",
-              lastMessageAt: new Date().toISOString(),
-              isMember: true,
-            } as ChatListItem,
-            ...prev,
-          ]);
-        }
-        setNewTitle("");
-        setNewMembers("");
-        setNewType("group");
-        setShowNewChat(false);
-        setFilter("groups");
-        navigate(`/chat/${chatId}`, { state: { title: computedTitle } });
-      } else {
-        // DM creation still supported (navigates directly), but DMs aren't listed in left card
-        const username = tokens[0];
-        const created = await createDmChatByUsername(username);
-        const chatId = (created as any).id ?? (created as any).chatId;
-        // don't switch to a "dms" tab (it no longer exists)
-        setNewTitle("");
-        setNewMembers("");
-        setNewType("group");
-        setShowNewChat(false);
-        setFilter("groups");
-        navigate(`/chat/${chatId}`, { state: { title: "(DM)" } });
+      const computedTitle = title || "(untitled)";
+      if (!reused) {
+        setItems((prev) => [
+          {
+            id: chatId,
+            type: "group",
+            title: computedTitle,
+            lastMessageText: "",
+            lastMessageAt: new Date().toISOString(),
+            isMember: true,
+          } as ChatListItem,
+          ...prev,
+        ]);
       }
+      setNewTitle("");
+      setNewMembers("");
+      setShowNewChat(false);
+      setFilter("groups");
+      navigate(`/chat/${chatId}`, { state: { title: computedTitle } });
     } catch (e: any) {
       setCreateErr(e?.response?.data?.code ?? "FAILED_TO_CREATE_CHAT");
     } finally {
@@ -211,6 +197,60 @@ export default function Home() {
     }
   };
 
+  const handleCreateDm = async () => {
+    const username = newDmUsername.trim();
+    if (!username) {
+      setDmError("USERNAME_REQUIRED");
+      return;
+    }
+
+    setCreatingDm(true);
+    setDmError(null);
+    try {
+      const created = await createDmChatByUsername(username);
+      const chatId = created.id;
+      const title = created.title || username;
+      
+      // Add DM to the items list if it doesn't already exist
+      setItems((prev) => {
+        // Check if DM already exists in the list
+        const exists = prev.some((item) => item.id === chatId);
+        if (exists) return prev;
+        
+        // Add DM to the beginning of the list
+        return [
+          {
+            id: chatId,
+            type: "dm" as const,
+            title: title,
+            lastMessageText: created.lastMessageText || "",
+            lastMessageAt: created.lastMessageAt || new Date().toISOString(),
+            isMember: true,
+          } as ChatListItem,
+          ...prev,
+        ];
+      });
+      
+      setNewDmUsername("");
+      setShowNewDm(false);
+      openWindow({ chatId, title });
+    } catch (e: any) {
+      const errorCode = e?.response?.data?.code;
+      // Map backend error codes to user-friendly messages
+      if (errorCode === "USER_NOT_FOUND") {
+        setDmError("User not found. Please check the username and try again.");
+      } else if (errorCode === "CANNOT_DM_SELF") {
+        setDmError("You cannot send a direct message to yourself.");
+      } else if (errorCode === "USERNAME_REQUIRED") {
+        setDmError("Please enter a username.");
+      } else {
+        setDmError(errorCode || "Failed to create direct message. Please try again.");
+      }
+    } finally {
+      setCreatingDm(false);
+    }
+  };
+
   const counts = {
     groups: groupMember.length,
     discover: discoverGroups.length,
@@ -221,8 +261,7 @@ export default function Home() {
   const hasFilteredItems = count > 0;
 
   return (
-    <DmWindowsProvider>
-      <div className="shell">
+    <div className="shell">
         <LogoutButton onClick={handleLogout} />
         <ProfileButton />
         <div className="gradient-bg" />
@@ -233,7 +272,10 @@ export default function Home() {
         {/* Two-column layout (left: chats, right: AI) */}
         <div className="home-two-col">
           <div className="card">
-            <Header count={count} onNewChat={() => setShowNewChat(true)} />
+            <Header 
+              count={count} 
+              onNewChat={() => setShowNewChat(true)}
+            />
 
             {err && <ErrorToast message={err} />}
             {joinErr && <ErrorToast message={joinErr} />}
@@ -272,18 +314,37 @@ export default function Home() {
           createErr={createErr}
           newTitle={newTitle}
           setNewTitle={setNewTitle}
-          newType={newType}
-          setNewType={setNewType}
           newMembers={newMembers}
           setNewMembers={setNewMembers}
           onClose={() => setShowNewChat(false)}
           onCreate={handleCreate}
         />
-      </div>
 
-      {/* ✅ DMs live only here */}
-      <DmDock dms={dms} loading={loading} />
-      <DmWindows />
+        <NewDmModal
+          open={showNewDm}
+          creating={creatingDm}
+          error={dmError}
+          username={newDmUsername}
+          setUsername={setNewDmUsername}
+          onClose={() => setShowNewDm(false)}
+          onCreate={handleCreateDm}
+        />
+
+        {/* ✅ DMs live only here */}
+        <DmDock 
+          dms={dms} 
+          loading={loading} 
+          onNewDm={() => setShowNewDm(true)}
+        />
+        <DmWindows />
+      </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <DmWindowsProvider>
+      <HomeContent />
     </DmWindowsProvider>
   );
 }
