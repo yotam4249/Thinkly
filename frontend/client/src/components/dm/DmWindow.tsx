@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useRef, useState,type MouseEvent } from "react";
 import { useDmWindows } from "./DmWindowsProvider";
-import { getMessages } from "../../services/chat.service";
+import { getMessages, getChatMeta } from "../../services/chat.service";
 import { getSocket } from "../../services/socket.service";
 import type { ChatMessage } from "../../types/chat.type";
 import { TokenManager } from "../../services/api";
@@ -41,6 +41,7 @@ export function DmWindow({ chatId, title, index }: Props) {
   const [input, setInput] = useState("");
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const pendingEchos = useRef<Record<string, number>>({}); // clientId -> timestamp
+  const [displayTitle, setDisplayTitle] = useState(title);
 
   const myId = useMemo(() => decodeUserIdFromJWT(TokenManager.access ?? null), []);
 
@@ -61,6 +62,35 @@ export function DmWindow({ chatId, title, index }: Props) {
     text: String(m.text ?? m.content ?? ""),
     createdAt: m.createdAt ?? m.timestamp ?? new Date().toISOString(),
   });
+
+  // Resolve peer name if title is "(DM)" or default
+  useEffect(() => {
+    if ((title === "(DM)" || !title || title.trim() === "") && myId) {
+      (async () => {
+        try {
+          const meta = await getChatMeta(chatId);
+          const members = Array.isArray(meta?.members) ? meta.members : [];
+          const peer =
+            members.find((m: any) => m?._id !== myId) ??
+            members[0] ??
+            null;
+
+          if (peer) {
+            const peerName =
+              peer?.username || peer?.fullName || peer?.name || peer?.email || title;
+            setDisplayTitle(peerName);
+          } else {
+            setDisplayTitle(title);
+          }
+        } catch (err) {
+          console.error("Failed to resolve peer name for DM:", err);
+          setDisplayTitle(title);
+        }
+      })();
+    } else {
+      setDisplayTitle(title);
+    }
+  }, [chatId, title, myId]);
 
   useEffect(() => {
     log("DmWindow mount", { chatId, title, index });
@@ -178,8 +208,8 @@ export function DmWindow({ chatId, title, index }: Props) {
         onMouseDown={onHeaderMouseDown}
         onDoubleClick={() => minimizeWindow(chatId, !minimized)}
       >
-        <div className="dmw-title" title={title}>
-          {title || "(DM)"}
+        <div className="dmw-title" title={displayTitle}>
+          {displayTitle || "(DM)"}
         </div>
 
         <div className="dmw-actions">

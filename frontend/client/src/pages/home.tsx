@@ -209,7 +209,8 @@ function HomeContent() {
     try {
       const created = await createDmChatByUsername(username);
       const chatId = created.id;
-      const title = created.title || username;
+      // Use username if backend returns default "(DM)" title
+      const title = created.title === "(DM)" ? username : created.title || username;
       
       // Add DM to the items list if it doesn't already exist
       setItems((prev) => {
