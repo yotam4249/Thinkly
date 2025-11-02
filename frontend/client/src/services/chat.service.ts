@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "./api";
 import type { ChatListItem } from "../types/chatList.type";
+import type { Gender } from "../types/user.type";
 
 /** ---------- Create ---------- */
 // DM strictly by username
@@ -51,12 +52,31 @@ export async function joinGroup(chatId: string) {
   return data as { ok: boolean };
 }
 
+// export async function getChatMeta(chatId: string) {
+//   const { data } = await api.get(`/chat/${chatId}`);
+//   return data as {
+//     id: string;
+//     title?: string;
+//     type: "dm" | "group";
+//     members: Array<{ _id: string; username?: string; fullName?: string; name?: string; email?: string }>;
+//   };
+// }
 export async function getChatMeta(chatId: string) {
   const { data } = await api.get(`/chat/${chatId}`);
   return data as {
     id: string;
     title?: string;
     type: "dm" | "group";
-    members: Array<{ _id: string; username?: string; fullName?: string; name?: string; email?: string }>;
+    members: Array<{
+      _id: string;
+      username?: string;
+      fullName?: string;
+      name?: string;
+      email?: string;
+      /** ✅ added: optional profile image key or URL */
+      profileImage?: string | null;
+      /** ✅ added: optional gender field */
+      gender?: Gender;
+    }>;
   };
 }

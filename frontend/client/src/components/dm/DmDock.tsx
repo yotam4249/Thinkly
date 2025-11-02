@@ -1,13 +1,19 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// src/components/dm/DmDock.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatListItem } from "../../types/chatList.type";
+import type { Gender } from "../../types/user.type";
 import { useDmWindows } from "./DmWindowsProvider";
 import { getChatMeta } from "../../services/chat.service";
 import { TokenManager } from "../../services/api";
 import { getSocket } from "../../services/socket.service";
+import { presignGet } from "../../services/s3.service";
 import "../../styles/dm.css";
+
+// Fallback avatars
+import maleAvatar from "../../assets/male.svg";
+import femaleAvatar from "../../assets/female.svg";
+import neutralAvatar from "../../assets/neutral.svg";
 
 type Props = {
   dms: ChatListItem[];
@@ -15,7 +21,6 @@ type Props = {
   className?: string;
 };
 
-// Decode user id from the current access token (matches your chatpage helper)
 function decodeUserIdFromJWT(jwt?: string | null): string | null {
   try {
     if (!jwt) return null;
@@ -27,119 +32,174 @@ function decodeUserIdFromJWT(jwt?: string | null): string | null {
   }
 }
 
+type AvatarInfo = {
+  src: string;               // final URL used by <img>
+  key?: string | null;       // S3 object key (if any)
+  gender?: Gender | null;    // for fallbacks
+};
+
+const genderFallback = (gender?: Gender | null) => {
+  const g = (gender ?? "other").toString().toLowerCase();
+  if (g === "male") return maleAvatar;
+  if (g === "female") return femaleAvatar;
+  // other / prefer_not_to_say / unknown
+  return neutralAvatar;
+};
+
 export function DmDock({ dms, loading, className }: Props) {
   const { openWindow } = useDmWindows();
 
-  const [open, setOpen] = useState(false); // default closed
+  const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
 
-  // cache of dmId -> display name (peer username)
+  // Resolved peer names & avatars by chatId
   const [peerNameByChat, setPeerNameByChat] = useState<Record<string, string>>({});
-  const fetching = useRef<Set<string>>(new Set());
+  const [peerAvatarByChat, setPeerAvatarByChat] = useState<Record<string, AvatarInfo>>({});
 
-  // overlay state managed by socket events:
-  // - last message preview by chat
-  // - unseen badge by chat
+  // Prevent repeated concurrent fetches
+  const fetchingMeta = useRef<Set<string>>(new Set());
+  const refreshingAvatar = useRef<Set<string>>(new Set());
+
+  // Realtime overlays
   const [lastByChat, setLastByChat] = useState<Record<string, { text: string; at?: string }>>({});
   const [unseenByChat, setUnseenByChat] = useState<Record<string, number>>({});
-
-  // track which rooms we joined so we can diff-join/leave
   const joinedRooms = useRef<Set<string>>(new Set());
 
-  const currentUserId = useMemo(() => decodeUserIdFromJWT(TokenManager.access ?? null), []);
+  const currentUserId = useMemo(
+    () => decodeUserIdFromJWT(TokenManager.access ?? null),
+    []
+  );
 
-  // Shift Logout button and page padding when dock opens
+  // Layout offsets when dock opens/closes
   useEffect(() => {
     const root = document.documentElement;
-    const offsetWhenOpen = 280 + 24; // 304px
+    const offsetWhenOpen = 280 + 24;
     const offsetWhenClosed = 48;
-
     const offset = open ? `${offsetWhenOpen}px` : `${offsetWhenClosed}px`;
     root.style.setProperty("--dm-dock-offset", offset);
     root.style.setProperty("--dm-dock-padding", offset);
-
     return () => {
       root.style.setProperty("--dm-dock-offset", `${offsetWhenClosed}px`);
       root.style.setProperty("--dm-dock-padding", "0px");
     };
   }, [open]);
 
-  // Resolve a human name for each DM (other participant)
+  // ---------- Resolve peer name + avatar ----------
   useEffect(() => {
     if (!currentUserId) return;
 
-    const toFetch = dms
-      .filter((x) => x.type === "dm")
-      .map((x) => x.id)
-      .filter((id) => !peerNameByChat[id] && !fetching.current.has(id));
-
+    const dmIds = dms.filter((x) => x.type === "dm").map((x) => x.id);
+    const toFetch = dmIds.filter(
+      (id) => (!peerNameByChat[id] || !peerAvatarByChat[id]) && !fetchingMeta.current.has(id)
+    );
     if (toFetch.length === 0) return;
 
     const batch = toFetch.slice(0, 6);
     batch.forEach(async (chatId) => {
       try {
-        fetching.current.add(chatId);
+        fetchingMeta.current.add(chatId);
+        console.log(`--- Resolving chat ${chatId} ---`);
+
         const meta = await getChatMeta(chatId);
+        console.log("Meta:", meta);
+
+        const members = Array.isArray(meta?.members) ? meta.members : [];
         const peer =
-          meta.members?.find?.((m) => m._id !== currentUserId) ??
-          meta.members?.[0] ??
+          members.find((m: any) => m?._id !== currentUserId) ??
+          members[0] ??
           null;
 
-        const label =
-          peer?.username ||
-          peer?.fullName ||
-          peer?.name ||
-          peer?.email ||
-          "(DM)";
+        if (!peer) {
+          console.log("No peer found for chat:", chatId);
+          return;
+        }
 
+        // 1) Name
+        const label =
+          peer?.username || peer?.fullName || peer?.name || peer?.email || "(DM)";
         setPeerNameByChat((prev) => ({ ...prev, [chatId]: label }));
-      } catch {
-        setPeerNameByChat((prev) => ({ ...prev, [chatId]: "(DM)" }));
+        console.log("Peer label:", label);
+
+        // 2) Avatar policy:
+        //    If profileImage exists → presign and use returned URL
+        //    else → use gender fallback (male/female/neutral)
+        const raw: string | null = peer?.profileImage ?? null;
+        const gender: Gender | null = (peer?.gender as Gender) ?? null;
+
+        console.log("Profile image:", raw, "Gender:", gender);
+
+        if (raw && /^https?:\/\//i.test(raw)) {
+          // If your backend ever returns a direct URL
+          console.log("Using direct URL for avatar");
+          setPeerAvatarByChat((prev) => ({
+            ...prev,
+            [chatId]: { src: raw, key: null, gender },
+          }));
+        } else if (raw && typeof raw === "string") {
+          // S3 key → presign
+          console.log("Presigning S3 key:", raw);
+          try {
+            const url = await presignGet(raw);
+            console.log("Presign success:", url);
+            setPeerAvatarByChat((prev) => ({
+              ...prev,
+              [chatId]: { src: url, key: raw, gender },
+            }));
+          } catch (err) {
+            console.error("Presign failed; using fallback:", err);
+            setPeerAvatarByChat((prev) => ({
+              ...prev,
+              [chatId]: { src: genderFallback(gender), key: raw, gender },
+            }));
+          }
+        } else {
+          // No image set → fallback
+          console.log("No image; using gender fallback");
+          setPeerAvatarByChat((prev) => ({
+            ...prev,
+            [chatId]: { src: genderFallback(gender), key: null, gender },
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching meta for chat:", chatId, err);
       } finally {
-        fetching.current.delete(chatId);
+        fetchingMeta.current.delete(chatId);
       }
     });
-  }, [dms, currentUserId, peerNameByChat]);
+  }, [dms, currentUserId, peerNameByChat, peerAvatarByChat]);
 
-  // ✅ JOIN all DM rooms so the dock receives `message:new` in realtime
+  // ---------- Join/leave rooms + message listener ----------
   useEffect(() => {
     const s = getSocket();
     const dmIds = dms.filter((x) => x.type === "dm").map((x) => x.id);
     const nextSet = new Set(dmIds);
 
-    // join newly added rooms
     for (const id of dmIds) {
       if (!joinedRooms.current.has(id)) {
+        console.log("Joining DM room:", id);
         s.emit?.("chat:join", { chatId: id });
         joinedRooms.current.add(id);
       }
     }
-
-    // leave rooms that are no longer in the list
     for (const id of Array.from(joinedRooms.current)) {
       if (!nextSet.has(id)) {
+        console.log("Leaving DM room:", id);
         s.emit?.("chat:leave", { chatId: id });
         joinedRooms.current.delete(id);
       }
     }
 
-    // listener for new messages (groups + dms); we'll filter by DM ids
     const onMessageNew = (payload: any) => {
       const chatId = String(payload?.chatId ?? "");
-      if (!nextSet.has(chatId)) return;        // only care about our DM rooms
       const text = String(payload?.text ?? payload?.content ?? "");
       const from = String(payload?.senderId ?? "");
+      console.log("New message:", { chatId, from, text });
+      if (!nextSet.has(chatId)) return;
 
-      // Update last message preview
-      setLastByChat((prev) => ({
-        ...prev,
-        [chatId]: { text, at: payload?.createdAt },
-      }));
+      setLastByChat((prev) => ({ ...prev, [chatId]: { text, at: payload?.createdAt } }));
 
-      // Mark unseen ONLY if it's from someone else
       setUnseenByChat((prev) => {
         if (from && currentUserId && from === currentUserId) {
-          // our own send → do not increment unseen; also clear if existed
           if (!prev[chatId]) return prev;
           const { [chatId]: _, ...rest } = prev;
           return rest;
@@ -150,49 +210,81 @@ export function DmDock({ dms, loading, className }: Props) {
     };
 
     s.on?.("message:new", onMessageNew);
-
     return () => {
       s.off?.("message:new", onMessageNew);
-      // do NOT mass-leave here; we maintain joins across the dock lifetime
     };
   }, [dms, currentUserId]);
 
-  // Compute display list with resolved names + overlay last message/unseen
-  const withDisplayNames = useMemo(() => {
+  // ---------- Build display list ----------
+  const withDisplay = useMemo(() => {
     return dms.map((it) => {
       if (it.type !== "dm") return it;
-      const resolved = peerNameByChat[it.id];
-      // overlay latest text if socket says we have a fresher one
-      const overlay = lastByChat[it.id]?.text;
+      const title = peerNameByChat[it.id] || it.title || "(DM)";
+      const overlayText = lastByChat[it.id]?.text;
       return {
         ...it,
-        title: resolved || it.title || "(DM)",
-        lastMessageText: overlay ?? it.lastMessageText ?? "",
+        title,
+        lastMessageText: overlayText ?? it.lastMessageText ?? "",
       };
     });
   }, [dms, peerNameByChat, lastByChat]);
 
   const filtered = useMemo(() => {
-    if (!q.trim()) return withDisplayNames;
+    if (!q.trim()) return withDisplay;
     const s = q.trim().toLowerCase();
-    return withDisplayNames.filter((x) => (x.title || "").toLowerCase().includes(s));
-  }, [withDisplayNames, q]);
+    return withDisplay.filter((x) => (x.title || "").toLowerCase().includes(s));
+  }, [withDisplay, q]);
 
-  // When opening a DM window from the dock, clear its unseen counter
+  // Open DM and clear unseen
   const handleOpen = (chatId: string, title?: string) => {
-    // Clear unseen badge immediately
+    console.log("Opening DM:", chatId);
     setUnseenByChat((prev) => {
       if (!prev[chatId]) return prev;
       const { [chatId]: _, ...rest } = prev;
       return rest;
     });
-
     openWindow({ chatId, title: title || "(DM)" });
+  };
+
+  // If presigned URL expires → re-presign once, else fallback to gender avatar
+  const handleAvatarError = async (chatId: string) => {
+    const info = peerAvatarByChat[chatId];
+    console.log("Image load error for chat:", chatId, info);
+
+    if (!info?.key) {
+      console.log("No key to refresh; using gender fallback");
+      setPeerAvatarByChat((prev) => ({
+        ...prev,
+        [chatId]: { ...info, src: genderFallback(info?.gender) },
+      }));
+      return;
+    }
+
+    if (refreshingAvatar.current.has(chatId)) {
+      console.log("Already refreshing this avatar; skipping");
+      return;
+    }
+
+    try {
+      refreshingAvatar.current.add(chatId);
+      console.log("Re-presigning avatar:", info.key);
+      const fresh = await presignGet(info.key);
+      console.log("Re-presign success:", fresh);
+      setPeerAvatarByChat((prev) => ({ ...prev, [chatId]: { ...info, src: fresh } }));
+    } catch (err) {
+      console.error("Re-presign failed; using fallback:", err);
+      setPeerAvatarByChat((prev) => ({
+        ...prev,
+        [chatId]: { ...info, src: genderFallback(info.gender) },
+      }));
+    } finally {
+      setTimeout(() => refreshingAvatar.current.delete(chatId), 4000);
+    }
   };
 
   return (
     <aside className={`dm-dock ${open ? "open" : "closed"} ${className ?? ""}`}>
-      <button className="dm-dock-toggle" onClick={() => setOpen((v) => !v)} aria-label="Toggle DM dock">
+      <button className="dm-dock-toggle" onClick={() => setOpen((v) => !v)}>
         {open ? "‹" : "›"}
       </button>
 
@@ -216,6 +308,7 @@ export function DmDock({ dms, loading, className }: Props) {
               const unseen = unseenByChat[it.id] ?? 0;
               const preview = (it.lastMessageText || "").slice(0, 36);
               const hasMore = (it.lastMessageText || "").length > 36;
+              const avatar = peerAvatarByChat[it.id]?.src ?? neutralAvatar;
 
               return (
                 <button
@@ -224,7 +317,17 @@ export function DmDock({ dms, loading, className }: Props) {
                   onClick={() => handleOpen(it.id, it.title)}
                   title={it.title || "(DM)"}
                 >
-                  <div className="dm-avatar" aria-hidden />
+                  <div className="dm-avatar" aria-hidden>
+                    <img
+                      className="dm-avatar-img"
+                      src={avatar}
+                      alt=""
+                      onError={() => handleAvatarError(it.id)}
+                      decoding="async"
+                      loading="lazy"
+                    />
+                  </div>
+
                   <div className="dm-meta">
                     <div className="dm-title-row">
                       <div className="dm-title">{it.title || "(DM)"}</div>

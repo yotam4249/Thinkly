@@ -347,7 +347,7 @@ export class ChatController {
       const { chatId } = req.params;
 
       const chat = await ChatModel.findById(chatId)
-        .populate({ path: "members", select: "_id username fullName name email" })
+        .populate({ path: "members", select: "_id username fullName name email profileImage gender" })
         .lean();
 
       if (!chat) return res.status(404).json({ code: "CHAT_NOT_FOUND" });
@@ -368,6 +368,8 @@ export class ChatController {
           fullName: u.fullName,
           name: u.name,
           email: u.email,
+          profileImage: u.profileImage ?? null,   // S3 key or full URL
+          gender: u.gender ?? null,   
         })),
       });
     } catch (e) {

@@ -170,11 +170,28 @@
 
 /* Avatar circle */
 .dm-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #dfe3ff;
-  flex: 0 0 auto;                        /* ✅ never grow */
+  --size: 40px;              /* tweak to your liking (32–48px works well) */
+  width: var(--size);
+  height: var(--size);
+  flex: 0 0 var(--size);
+  border-radius: 10px;       /* keep square; bump to 50% for a circle */
+  overflow: hidden;          /* clip the image to the square */
+  background: #f2f3f5;       /* subtle placeholder bg */
+  position: relative;
+}
+
+.dm-avatar-img {
+  width: 100%;
+  height: 100%;
+  display: block;            /* remove inline-gap */
+  object-fit: cover;         /* fill and crop to square */
+  object-position: center;   /* center the crop */
+}
+
+.dm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Text meta */
