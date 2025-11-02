@@ -25,22 +25,6 @@
   flex-wrap: nowrap;           /* never wrap */
 }
 
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.hello-user {
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 1;
-  color: var(--text, #111827);
-  white-space: nowrap;
-  opacity: 0.85;
-}
-
 .home-title-wrap {
   display: flex;
   align-items: center;         /* align with circle */
@@ -454,7 +438,7 @@
 .hello-user-fixed {
   position: fixed;
   top: 12px;
-  left: calc(12px + var(--logout-btn-width) + var(--logout-gap));
+  left: calc(12px + var(--dm-dock-padding, 0px) + var(--logout-btn-width) + var(--logout-gap) + 700px) !important;
   z-index: 9999;
   margin-top: 2px;
   /* Match visual size with .logout-btn-fixed */
@@ -469,6 +453,7 @@
   line-height: 1;                    /* prevents extra height */
   color: #111827;
   white-space: nowrap;
+  transition: left 260ms cubic-bezier(.2,.8,.2,1), margin-left 260ms cubic-bezier(.2,.8,.2,1);
 }
 
 /* If space is tight on small screens, stack under logout */
@@ -479,13 +464,7 @@
   }
 }
 
-
 .logout-btn-fixed {
   left: calc(12px + var(--dm-dock-padding, 0px));
-  transition: left 260ms cubic-bezier(.2,.8,.2,1);
-}
-
-.hello-user-fixed {
-  left: calc(12px + var(--dm-dock-padding, 0px) + var(--logout-btn-width) + var(--logout-gap));
   transition: left 260ms cubic-bezier(.2,.8,.2,1);
 }
