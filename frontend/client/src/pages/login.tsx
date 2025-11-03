@@ -58,7 +58,7 @@ export default function Login() {
           </span>
           <h2 className="visual-title">Welcome back</h2>
           <p className="visual-copy">
-            Sign in to manage campaigns, track performance, and collaborate with your team.
+            Sign in to start learning and collaborate with your friends!
           </p>
         </div>
 

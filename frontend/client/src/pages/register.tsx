@@ -136,7 +136,7 @@ export default function Register() {
           </span>
           <h2 className="visual-title">Create your account</h2>
           <p className="visual-copy">
-            Join Thinkly to launch campaigns quickly and collaborate with your team.
+            Join Thinkly to learn and collaborate with your friends.
           </p>
         </div>
 
