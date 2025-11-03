@@ -296,4 +296,33 @@ export class AuthController {
       return res.status(500).json({ code: "SERVER_ERROR" });
     }
   }
+
+  static async getUserProfile(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      if (!userId) return res.status(400).json({ code: "BAD_REQUEST", message: "User ID required" });
+
+      const user = await UserModel.findById(userId).select("_id username profileImage dateOfBirth gender quizHistory");
+      if (!user) return res.status(404).json({ code: "NOT_FOUND" });
+
+      const profileImageUrl = user.profileImage
+        ? await getPresignedGetUrl(user.profileImage)
+        : null;
+
+      return res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          dateOfBirth: user.dateOfBirth,
+          gender: user.gender,
+          profileImage: user.profileImage ?? null,
+          profileImageUrl,
+          quizHistory: user.quizHistory ?? [],
+        },
+      });
+    } catch (err) {
+      console.error("getUserProfile error:", err);
+      return res.status(500).json({ code: "SERVER_ERROR" });
+    }
+  }
 }

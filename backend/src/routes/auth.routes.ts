@@ -11,3 +11,4 @@ authRouter.post("/logout", AuthController.logout);
 authRouter.get("/me", authMiddleware, AuthController.me);
 authRouter.put("/profile", authMiddleware, AuthController.updateProfile);
 authRouter.put("/password", authMiddleware, AuthController.updatePassword);
+authRouter.get("/user/:userId", authMiddleware, AuthController.getUserProfile);

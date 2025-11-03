@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import type { ChatMessage } from "../../types/chat.type";
 import { isQuizPreviewMessage, parseQuizPreviewMessage } from "../../utils/quiz.utils";
 import { InteractiveQuiz } from "../ai/InteractiveQuiz";
@@ -21,8 +22,17 @@ export function MessageRow({
   meId: string;
   onSend?: (text: string) => void;
 }) {
+  const navigate = useNavigate();
   const m = msg as MsgWithName;
   const mine = m.senderId === meId;
+
+  const handleProfileClick = () => {
+    if (m.senderId && !mine) {
+      navigate(`/profile/${m.senderId}`);
+    } else if (mine) {
+      navigate("/profile");
+    }
+  };
   const [quizExpanded, setQuizExpanded] = useState(false);
   const [quizDeclined, setQuizDeclined] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -78,7 +88,20 @@ export function MessageRow({
       aria-label={`Message from ${displayName}${timeStr ? ` at ${timeStr}` : ""}`}
     >
       {!mine && (
-        <div className="message-avatar-left">
+        <div 
+          className="message-avatar-left"
+          onClick={handleProfileClick}
+          style={{ cursor: "pointer" }}
+          role="button"
+          aria-label={`View ${displayName}'s profile`}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleProfileClick();
+            }
+          }}
+        >
           <Avatar
             keyPath={m.senderProfileImage ?? undefined}
             gender={(m.senderGender as Gender) ?? undefined}
@@ -145,7 +168,20 @@ export function MessageRow({
         )}
       </div>
       {mine && (
-        <div className="message-avatar-right">
+        <div 
+          className="message-avatar-right"
+          onClick={handleProfileClick}
+          style={{ cursor: "pointer" }}
+          role="button"
+          aria-label="View your profile"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleProfileClick();
+            }
+          }}
+        >
           <Avatar
             keyPath={m.senderProfileImage ?? undefined}
             gender={(m.senderGender as Gender) ?? undefined}
@@ -155,7 +191,20 @@ export function MessageRow({
         </div>
       )}
       <footer className="meta" aria-label="Message metadata">
-        <span className="meta-name" aria-label={`Sender: ${displayName}`}>
+        <span 
+          className="meta-name" 
+          aria-label={`Sender: ${displayName}`}
+          onClick={handleProfileClick}
+          style={{ cursor: "pointer", textDecoration: "underline" }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleProfileClick();
+            }
+          }}
+        >
           {displayName}
         </span>
         {timeStr && (

@@ -8,6 +8,7 @@ import Register from "./pages/register";
 import ChatPage from "./pages/ChatPage";
 import Home from "./pages/home";
 import Profile from "./pages/profile";
+import ProfilePreview from "./pages/profilePreview";
 
 function ChatRoute() {
   const { id } = useParams();
@@ -34,6 +35,7 @@ function AppRoutes() {
       <Route path="/chat/:id" element={<ChatRoute/>} />
       <Route path="/home" element={<Home />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/profile/:userId" element={<ProfilePreview />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
