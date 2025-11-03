@@ -18,7 +18,7 @@ async function start() {
   await initKafka();
   initSocket(server); // ← all socket logic is encapsulated
 
-  server.listen(PORT, () => console.log(`Server http://localhost:${PORT}`));
+  server.listen(PORT, () => console.log(`Listening on 0.0.0.0:${PORT}`));
 
   const bye = (sig: string) => {
     console.log(`${sig} shutting down...`);
