@@ -2,6 +2,7 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import cors from "cors";
 import mongoose from "mongoose";
 import { apiRouter } from "./routes/api";
+import cookieParser from "cookie-parser";
 
 export async function connectMongo(uri: string, dbName: string) {
     // Attach listeners before connecting
@@ -62,6 +63,7 @@ export function createApp() : Express{
           allowedHeaders: ["Content-Type", "Authorization"],
         })
     );
+    app.use(cookieParser())
 
     app.use("/api", apiRouter);
 
