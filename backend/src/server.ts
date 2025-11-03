@@ -1,4 +1,3 @@
-// src/server.ts
 import express, { type Express } from "express";
 import cors from "cors";
 import mongoose from "mongoose";
@@ -9,11 +8,7 @@ import { apiRouter } from "./routes/api";
 export async function connectMongo(uri: string, dbName: string) {
   const conn = mongoose.connection;
 
-  // Attach listeners before connecting
   conn.on("connected", () => {
-    // host/name available after connect
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { host, name } = conn;
     console.log(`Mongo connected`);
   });
 
@@ -40,10 +35,10 @@ export function createApp(): Express {
   const app = express();
   const isProd = process.env.NODE_ENV === "production";
 
-  // Needed for secure cookies / proxy headers on Render
+  // Trust proxy (needed on Render for secure cookies)
   app.set("trust proxy", true);
 
-  // Basic security headers (relaxed CSP to avoid blocking Socket.IO on same origin)
+  // Basic security headers
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -55,31 +50,32 @@ export function createApp(): Express {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
-  // ----- CORS (allow only configured origins; also support local dev) -----
-  const fromEnv = (process.env.FRONTEND_ORIGIN ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const devOrigins = ["http://localhost:3000", "http://localhost:5173"];
-  const allowedOrigins = fromEnv.length ? fromEnv : isProd ? [] : devOrigins;
+  // ---------- SECURE CORS SETUP ----------
+  const allowedOrigins: (string | RegExp)[] = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://thinkly-psi.vercel.app", // your production site
+    /\.vercel\.app$/                  // allow all Vercel preview URLs
+  ];
 
   app.use(
     cors({
       origin(origin, cb) {
-        if (!origin) return cb(null, true); // server-to-server / curl
-        return allowedOrigins.includes(origin)
-          ? cb(null, true)
-          : cb(new Error(`CORS blocked: ${origin}`));
+        if (!origin) return cb(null, true); // allow server-to-server/curl
+        const ok = allowedOrigins.some(rule =>
+          typeof rule === "string" ? rule === origin : rule.test(origin)
+        );
+        if (ok) return cb(null, true);
+        console.warn(`❌ CORS blocked: ${origin}`);
+        return cb(new Error(`CORS blocked: ${origin}`));
       },
-      credentials: true, // send cookies for login/refresh/logout
+      credentials: true, // <-- allow cookies to be sent
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      // Add X-CSRF-Token if you introduce CSRF later
       allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
 
-  // ----- Optional dev logger -----
+  // ---------- Optional dev request logger ----------
   if (!isProd) {
     app.use((req, _res, next) => {
       console.log(`[${req.method}] ${req.originalUrl}`);
@@ -87,11 +83,11 @@ export function createApp(): Express {
     });
   }
 
-  // ----- Health & root (handy for Render checks) -----
+  // ---------- Health checks ----------
   app.get("/", (_req, res) => res.send("OK"));
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
-  // ----- API -----
+  // ---------- Main API ----------
   app.use("/api", apiRouter);
 
   return app;
