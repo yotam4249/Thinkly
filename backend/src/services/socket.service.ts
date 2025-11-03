@@ -2,6 +2,7 @@ import { Server as IOServer, type Socket } from "socket.io";
 import type { Server as HTTPServer } from "http";
 import { verifyAccess } from "../services/auth.service";
 import { registerChatSocket } from "../sockets/chat.socket";
+import { registerChatBroadcastConsumer } from "../consumers/chat.broadcast.consumer";
 
 export function initSocket(server: HTTPServer) {
   const io = new IOServer(server, {
@@ -23,6 +24,9 @@ export function initSocket(server: HTTPServer) {
 
   // register domain-specific socket handlers
   registerChatSocket(io);
+  registerChatBroadcastConsumer(io).catch((e) =>
+    console.error("[KAFKA] failed to register broadcast consumer:", e)
+  );
 
   return io;
 }

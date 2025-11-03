@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import http from "http";
 import { connectMongo, createApp, disconnectMongo } from "./server";
 import { initSocket } from "./services/socket.service";
+import { initKafka, shutdownKafka } from "./services/kafka.service";
 
 dotenv.config();
 
@@ -13,13 +14,18 @@ async function start() {
   const app = createApp();
 
   const server = http.createServer(app);
+
+  await initKafka();
   initSocket(server); // ← all socket logic is encapsulated
 
   server.listen(PORT, () => console.log(`Server http://localhost:${PORT}`));
 
   const bye = (sig: string) => {
     console.log(`${sig} shutting down...`);
-    server.close(async () => { await disconnectMongo(); process.exit(0); });
+    server.close(async () => {
+       await shutdownKafka();
+       await disconnectMongo(); process.exit(0); 
+      });
     setTimeout(() => process.exit(1), 10_000).unref();
   };
   process.on("SIGINT", () => bye("SIGINT"));

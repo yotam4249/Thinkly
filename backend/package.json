@@ -23,6 +23,7 @@
     "helmet": "^8.1.0",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
     "mime": "^4.1.0",
     "mongoose": "^8.19.2",
     "multer": "^2.0.2",
