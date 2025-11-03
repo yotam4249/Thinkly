@@ -136,14 +136,14 @@ export default function Register() {
           </span>
           <h2 className="visual-title">Create your account</h2>
           <p className="visual-copy">
-            Join Ad-Wise to launch campaigns quickly and collaborate with your team.
+            Join Thinkly to launch campaigns quickly and collaborate with your team.
           </p>
         </div>
 
         <div className="form-pane">
           <header className="form-header">
             <h1 className="auth-heading">Create account</h1>
-            <p className="auth-subheading">Join Ad-Wise in a few seconds</p>
+            <p className="auth-subheading">Join Thinkly in a few seconds</p>
           </header>
 
           <form onSubmit={onSubmit} noValidate>

@@ -54,7 +54,7 @@ export default function Login() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.88L18.18 22 12 18.77 5.82 22 7 14.15l-5-4.88 6.91-1.01L12 2z" />
             </svg>
-            Ad-Wise
+            Thinkly
           </span>
           <h2 className="visual-title">Welcome back</h2>
           <p className="visual-copy">
@@ -66,7 +66,7 @@ export default function Login() {
         <div className="form-pane">
           <header style={{ textAlign: "center", marginBottom: 10 }}>
             <h1 className="auth-heading">Sign in</h1>
-            <p className="auth-subheading">Access your Ad-Wise account</p>
+            <p className="auth-subheading">Access your Thinkly account</p>
           </header>
 
           <form onSubmit={onSubmit} noValidate>

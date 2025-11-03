@@ -527,36 +527,90 @@
   border-color: var(--brand, #2563eb);
 }
 
-.image-upload-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.image-preview {
-  width: 100%;
-  max-width: 200px;
-  height: 200px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
+/* Enhanced file input styling */
+.edit-profile-file-input {
+  padding: 10px 12px;
   border: 1px solid var(--border);
-}
-
-.image-placeholder {
-  width: 200px;
-  height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in oklab, var(--soft) 40%, transparent);
-  border: 2px dashed var(--border);
   border-radius: var(--radius-md);
-  color: var(--muted);
   font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  width: 100%;
 }
 
-.file-input {
-  padding: 8px;
+.edit-profile-file-input:hover {
+  border-color: color-mix(in oklab, var(--brand, #2563eb) 40%, var(--border));
+}
+
+.edit-profile-file-input:focus {
+  outline: none;
+  border-color: var(--brand, #2563eb);
+  box-shadow: 
+    0 0 0 4px color-mix(in oklab, var(--brand, #2563eb) 10%, transparent),
+    0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.edit-profile-file-input::file-selector-button {
+  display: none;
+}
+
+/* Enhanced preview image container */
+.profile-preview-container {
+  margin-top: 12px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--brand, #2563eb) 5%, transparent);
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--brand, #2563eb) 15%, transparent);
+  display: inline-block;
+  animation: fadeIn 0.3s ease;
+}
+
+.profile-preview {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 3px solid color-mix(in oklab, var(--brand, #2563eb) 20%, transparent);
+  box-shadow: 
+    0 4px 12px rgba(37, 99, 235, 0.2),
+    0 0 0 1px color-mix(in oklab, var(--brand, #2563eb) 10%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: previewPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: block;
+}
+
+@keyframes previewPop {
+  0% { 
+    transform: scale(0.8); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-preview:hover {
+  transform: scale(1.05);
+  border-color: var(--brand, #2563eb);
+  box-shadow: 
+    0 6px 20px rgba(37, 99, 235, 0.3),
+    0 0 0 1px color-mix(in oklab, var(--brand, #2563eb) 20%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   cursor: pointer;
 }
 

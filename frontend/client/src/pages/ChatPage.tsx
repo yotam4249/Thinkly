@@ -9,13 +9,15 @@ import { ChatHeader } from "../components/chat/ChatHeader";
 import { MessageList } from "../components/chat/MessageList";
 import { Composer } from "../components/chat/Composer";
 import { AiAgentPanel } from "../components/ai/AiAgentPanel";
-import { DmWindowsProvider } from "../components/dm/DmWindowsProvider";
+import { DmWindowsProvider, useDmWindows } from "../components/dm/DmWindowsProvider";
 import { DmDock } from "../components/dm/DmDock";
 import { DmWindows } from "../components/dm/DmWindows";
+import { NewDmModal } from "../components/dm/NewDmModal";
 import type { ChatMessage } from "../types/chat.type";
 import type { ChatListItem } from "../types/chatList.type";
 import { useAppSelector } from "../store/hooks";
 import { selectAuthUser } from "../store/slices/authSlice";
+import { createDmChatByUsername } from "../services/chat.service";
 import "../styles/chat.css";
 
 function decodeUserIdFromJWT(jwt?: string | null): string | null {
@@ -36,12 +38,13 @@ function uuid() {
 type RouteState = { title?: string } | null;
 type MsgWithName = ChatMessage & { senderName?: string };
 
-export default function ChatPage({ chatId }: { chatId: string }) {
+function ChatPageContent({ chatId }: { chatId: string }) {
   const meId = useMemo(() => decodeUserIdFromJWT(TokenManager.access) || "me", []);
   const currentUser = useAppSelector(selectAuthUser);
   const location = useLocation();
   const routeState = (location.state as RouteState) || null;
   const chatTitleFromNav = routeState?.title || "(untitled)";
+  const { openWindow } = useDmWindows();
 
   const [messages, setMessages] = useState<MsgWithName[]>([]);
   const [sending, setSending] = useState(false);
@@ -51,6 +54,12 @@ export default function ChatPage({ chatId }: { chatId: string }) {
   // DM data for dock
   const [dms, setDms] = useState<ChatListItem[]>([]);
   const [dmsLoading, setDmsLoading] = useState(false);
+
+  // New DM modal state
+  const [showNewDm, setShowNewDm] = useState(false);
+  const [creatingDm, setCreatingDm] = useState(false);
+  const [newDmUsername, setNewDmUsername] = useState("");
+  const [dmError, setDmError] = useState<string | null>(null);
 
   const seenIdsRef = useRef<Set<string>>(new Set());
   const msgsRef = useRef<MsgWithName[]>([]);
@@ -278,7 +287,7 @@ export default function ChatPage({ chatId }: { chatId: string }) {
   }, []);
 
   return (
-    <DmWindowsProvider>
+    <>
       <div className="chat-shell" role="main" aria-label="Chat interface">
         <div className="chat-card">
           {/* LEFT COLUMN - Main Chat Area */}
@@ -306,8 +315,84 @@ export default function ChatPage({ chatId }: { chatId: string }) {
       </div>
 
       {/* DM Dock and Floating Windows */}
-      <DmDock dms={dms} loading={dmsLoading} />
+      <DmDock 
+        dms={dms} 
+        loading={dmsLoading}
+        onNewDm={() => setShowNewDm(true)}
+      />
       <DmWindows />
+
+      {/* New DM Modal */}
+      <NewDmModal
+        open={showNewDm}
+        creating={creatingDm}
+        error={dmError}
+        username={newDmUsername}
+        setUsername={setNewDmUsername}
+        onClose={() => {
+          setShowNewDm(false);
+          setDmError(null);
+          setNewDmUsername("");
+        }}
+        onCreate={async () => {
+          const username = newDmUsername.trim();
+          if (!username) {
+            setDmError("USERNAME_REQUIRED");
+            return;
+          }
+
+          setCreatingDm(true);
+          setDmError(null);
+          try {
+            const created = await createDmChatByUsername(username);
+            const chatId = created.id;
+            const title = created.title === "(DM)" ? username : created.title || username;
+            
+            // Add DM to the items list if it doesn't already exist
+            setDms((prev) => {
+              const exists = prev.some((item) => item.id === chatId);
+              if (exists) return prev;
+              
+              return [
+                {
+                  id: chatId,
+                  type: "dm" as const,
+                  title: title,
+                  lastMessageText: created.lastMessageText || "",
+                  lastMessageAt: created.lastMessageAt || new Date().toISOString(),
+                  isMember: true,
+                } as ChatListItem,
+                ...prev,
+              ];
+            });
+            
+            setNewDmUsername("");
+            setShowNewDm(false);
+            openWindow({ chatId, title });
+          } catch (e: any) {
+            const errorCode = e?.response?.data?.code;
+            if (errorCode === "USER_NOT_FOUND") {
+              setDmError("User not found. Please check the username and try again.");
+            } else if (errorCode === "CANNOT_DM_SELF") {
+              setDmError("You cannot send a direct message to yourself.");
+            } else if (errorCode === "USERNAME_REQUIRED") {
+              setDmError("Please enter a username.");
+            } else {
+              setDmError(errorCode || "Failed to create direct message. Please try again.");
+            }
+          } finally {
+            setCreatingDm(false);
+          }
+        }}
+      />
+    </>
+  );
+}
+
+export default function ChatPage({ chatId }: { chatId: string }) {
+  return (
+    <DmWindowsProvider>
+      <ChatPageContent chatId={chatId} />
     </DmWindowsProvider>
   );
 }

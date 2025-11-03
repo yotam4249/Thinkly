@@ -396,20 +396,23 @@ function EditProfileModal({
         {activeTab === "profile" ? (
           <form onSubmit={handleSubmitProfile} className="edit-profile-form">
             <div className="form-group">
-              <label>Profile Picture</label>
-              <div className="image-upload-section">
-                {preview ? (
-                  <img src={preview} alt="Preview" className="image-preview" />
-                ) : (
-                  <div className="image-placeholder">No image selected</div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="file-input"
-                />
-              </div>
+              <label htmlFor="profileImageEdit">Profile Picture</label>
+              <input
+                id="profileImageEdit"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="edit-profile-file-input"
+              />
+              {preview && (
+                <div className="profile-preview-container">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="profile-preview"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="form-group">
