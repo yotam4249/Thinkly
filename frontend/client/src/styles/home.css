@@ -315,6 +315,7 @@
   .home-two-col {
     grid-template-columns: 1fr 380px;
     gap: 20px;
+    max-width: min(1400px, 100%);
   }
 }
 
@@ -337,6 +338,10 @@
 
   .home-container {
     width: 100%;
+    max-width: 100%;
+  }
+
+  .home-two-col {
     max-width: 100%;
   }
 
@@ -713,7 +718,8 @@
   height: calc(100vh - 120px); /* tweak 120px to fit your header/margins */
   min-height: 0;               /* critical for nested flex scroll */
   width: 100%;
-  max-width: 100%;
+  max-width: min(1600px, 100%);
+  margin: 0 auto;
   box-sizing: border-box;
 }
 
@@ -727,6 +733,12 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Constrain the left card in home page to prevent infinite expansion */
+.home-two-col > .card {
+  max-width: 100%;
+  width: 100%;
 }
 
 /* Right card that contains the AI panel */
@@ -753,7 +765,7 @@
   transition: padding-left var(--dm-dur, 480ms) var(--dm-ease, cubic-bezier(.16,1,.3,1)) !important;
   will-change: padding-left;
   width: 100%;
-  max-width: 100%;
+  max-width: 100vw;
   box-sizing: border-box;
   overflow-x: hidden;
 }

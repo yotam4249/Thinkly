@@ -15,6 +15,7 @@
   transition: padding-left 260ms cubic-bezier(.2,.8,.2,1);
   will-change: padding-left;
   width: 100%;
+  max-width: 100vw;
   box-sizing: border-box;
 }
 
@@ -45,13 +46,13 @@
 .chat-card {
   position: relative;
   z-index: 1;
-  width: min(100%, 1680px);
-  max-width: 100%;
+  width: 100%;
+  max-width: min(1600px, 100%);
   margin: 0 auto;
   box-sizing: border-box;
 
   display: grid;
-  grid-template-columns: minmax(0, 980px) minmax(0, 420px);  /* left fixed, right fixed with max */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);  /* left flexible, right fixed with max */
   grid-template-rows: auto 1fr auto;
   grid-template-areas:
     "header   aside"
@@ -770,6 +771,7 @@
   .chat-card {
     grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
     column-gap: 24px;
+    max-width: min(1400px, 100%);
   }
 }
 
