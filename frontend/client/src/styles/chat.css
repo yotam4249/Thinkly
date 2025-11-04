@@ -7,8 +7,9 @@
   background: var(--bg);
   padding: 24px;
   padding-left: calc(24px + var(--dm-dock-padding, 0px));
+  padding-right: 24px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   overflow-x: hidden;
   overflow-y: auto;
@@ -47,8 +48,8 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: min(1600px, 100%);
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   box-sizing: border-box;
 
   display: grid;
@@ -771,7 +772,7 @@
   .chat-card {
     grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
     column-gap: 24px;
-    max-width: min(1400px, 100%);
+    max-width: 100%;
   }
 }
 

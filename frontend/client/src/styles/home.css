@@ -315,7 +315,7 @@
   .home-two-col {
     grid-template-columns: 1fr 380px;
     gap: 20px;
-    max-width: min(1400px, 100%);
+    max-width: 100%;
   }
 }
 
@@ -718,8 +718,7 @@
   height: calc(100vh - 120px); /* tweak 120px to fit your header/margins */
   min-height: 0;               /* critical for nested flex scroll */
   width: 100%;
-  max-width: min(1600px, 100%);
-  margin: 0 auto;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -735,10 +734,12 @@
   box-sizing: border-box;
 }
 
-/* Constrain the left card in home page to prevent infinite expansion */
-.home-two-col > .card {
-  max-width: 100%;
+/* Override ui.css card width restriction for home page */
+.home-two-col > .card,
+.shell > .card {
   width: 100%;
+  max-width: 100%;
+  margin: 0;
 }
 
 /* Right card that contains the AI panel */
@@ -762,12 +763,17 @@
   --shell-base-padding-left: 6px; /* Shifted left from logout button position */
   padding: var(--shell-base-padding);
   padding-left: calc(var(--shell-base-padding-left) + var(--dm-dock-padding, 0px)) !important;
+  padding-right: var(--shell-base-padding);
   transition: padding-left var(--dm-dur, 480ms) var(--dm-ease, cubic-bezier(.16,1,.3,1)) !important;
   will-change: padding-left;
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
   overflow-x: hidden;
+  /* Override ui.css grid centering - use full width */
+  display: block;
+  place-items: unset;
+  position: relative;
 }
 
 /* Optional: keep the two-column area from overflowing while animating */
