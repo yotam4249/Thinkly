@@ -26,7 +26,7 @@ Each group has an **AI Agent Panel** that:
 | **AI Integration** | OpenAI GPT-based Agent |
 | **Caching** | Redis (hot chat data) |
 | **Message Queue** | KafkaJS (asynchronous message pipeline) |
-| **Storage** | AWS S3 (profile images, shared files) |
+| **Storage** | AWS S3 (images, shared files) |
 | **Auth** | JWT (Access & Refresh Tokens) |
 
 ---
