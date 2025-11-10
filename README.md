@@ -2,6 +2,7 @@
 
 > **Thinkly** is a collaborative AI-driven learning platform that brings students, teams, and curious minds together inside real-time chat groups powered by intelligent AI assistance.
 
+  LIVE - https://thinkly-psi.vercel.app/
 ---
 
 ## 🌍 Overview
